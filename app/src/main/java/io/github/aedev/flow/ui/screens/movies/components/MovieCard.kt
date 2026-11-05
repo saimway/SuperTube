@@ -1,10 +1,5 @@
 package io.github.aedev.flow.ui.screens.movies.components
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,20 +23,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import io.github.aedev.flow.data.movie.MovieItem
 
 private val CardPosterRatio = 2f / 3f
@@ -70,10 +60,7 @@ fun MovieCard(
             Box(modifier = Modifier.fillMaxSize()) {
                 if (movie.posterUrl != null) {
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(movie.posterUrl)
-                            .crossfade(true)
-                            .build(),
+                        model = movie.posterUrl,
                         contentDescription = movie.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -145,22 +132,14 @@ fun MovieCard(
     }
 }
 
+/**
+ * Static M3 skeleton placeholder: zero infinite animation transitions running in background.
+ */
 @Composable
 fun MovieCardSkeleton(
     modifier: Modifier = Modifier,
     cardWidth: Dp = 130.dp,
 ) {
-    val transition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "skeleton_alpha",
-    )
-
     Column(
         modifier = modifier.width(cardWidth),
     ) {
@@ -169,7 +148,7 @@ fun MovieCardSkeleton(
                 .fillMaxWidth()
                 .aspectRatio(CardPosterRatio)
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)),
         )
 
         Spacer(modifier = Modifier.height(6.dp))
@@ -179,7 +158,7 @@ fun MovieCardSkeleton(
                 .fillMaxWidth(0.8f)
                 .height(14.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)),
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -189,7 +168,7 @@ fun MovieCardSkeleton(
                 .fillMaxWidth(0.4f)
                 .height(10.dp)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f)),
         )
     }
 }

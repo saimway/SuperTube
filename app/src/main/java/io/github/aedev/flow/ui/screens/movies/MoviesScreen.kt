@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.topbar.FlowGlobalActionsMode
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
@@ -146,6 +149,22 @@ fun MoviesScreen(
                         } else {
                             // Netflix-like Shelves Feed
                             val listState = rememberLazyListState()
+
+                            // Strict on-demand loading: load next shelf only when user actually scrolls down
+                            LaunchedEffect(listState, state.shelves.size) {
+                                snapshotFlow {
+                                    val layoutInfo = listState.layoutInfo
+                                    val total = layoutInfo.totalItemsCount
+                                    val last = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                    total > 0 && last >= total - 2
+                                }
+                                    .distinctUntilChanged()
+                                    .filter { it }
+                                    .collect {
+                                        viewModel.loadNextShelfBatch()
+                                    }
+                            }
+
                             LazyColumn(
                                 state = listState,
                                 contentPadding = PaddingValues(
@@ -155,7 +174,7 @@ fun MoviesScreen(
                             ) {
                                 // Hero Featured Movie
                                 if (state.heroMovie != null) {
-                                    item(key = "hero_section") {
+                                    item(key = "hero_section", contentType = "hero") {
                                         MovieHeroSection(
                                             movie = state.heroMovie,
                                             onPlayClick = { onPlayMovie(state.heroMovie.id) },
@@ -168,6 +187,7 @@ fun MoviesScreen(
                                 items(
                                     items = state.shelves,
                                     key = { shelf -> shelf.category.id },
+                                    contentType = { "shelf_row" },
                                 ) { shelf ->
                                     MovieShelfRow(
                                         shelf = shelf,

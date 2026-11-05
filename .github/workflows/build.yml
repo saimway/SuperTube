@@ -213,12 +213,11 @@ jobs:
             echo "Nightly keystore secret is not available. Continuing with debug-signed build."
           fi
 
-      # GitHub release APKs are only published from tags, and nightly is
-      # initWith(release), so regular runs build nightly in their place.
+      # Regular CI runs build the full release APK, nightly, and FOSS release
       - name: Build CI APKs
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: >
-          ./gradlew :app:assembleGithubDebug :app:assembleGithubNightly :app:assembleFossRelease
+          ./gradlew :app:assembleGithubRelease :app:assembleGithubNightly :app:assembleFossRelease
           --build-cache --stacktrace
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -348,10 +347,10 @@ jobs:
           fi
 
       # Universal and architecture-specific APK uploads (always produces downloadable artifacts)
-      - name: Upload GitHub universal APK
+      - name: Upload GitHub universal Release APK
         uses: actions/upload-artifact@v7
         with:
-          name: supertube-github-universal-apk
+          name: supertube-release-apk
           path: app/build/outputs/apk/github/release/app-github-universal-release*.apk
           if-no-files-found: ignore
           retention-days: 14

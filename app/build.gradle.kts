@@ -170,8 +170,8 @@ android {
                 signingConfig = signingConfigs.getByName("release")
                 println("Using RELEASE signing config with keystore: ${releaseKeystore.absolutePath}")
             } else {
-                signingConfig = null // Let Gradle build an unsigned APK for IzzyOnDroid/F-Droid
-                println("WARNING: Release keystore not found. Building UNSIGNED release APK.")
+                signingConfig = signingConfigs.getByName("debug")
+                println("Release keystore not found. Using debug signing for release build.")
             }
         }
         // Nightly: release-level performance under its own app id. It must come after release,

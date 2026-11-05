@@ -156,6 +156,14 @@ fun MoviePlayerScreen(
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             insetsController?.show(WindowInsetsCompat.Type.systemBars())
+            webViewRef?.apply {
+                stopLoading()
+                loadUrl("about:blank")
+                clearHistory()
+                removeAllViews()
+                destroy()
+            }
+            webViewRef = null
         }
     }
 
@@ -445,6 +453,7 @@ private fun createSandboxedWebView(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
         )
+        setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         settings.apply {
             javaScriptEnabled = true

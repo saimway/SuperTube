@@ -16,19 +16,11 @@ data class MovieItem(
     val voteAverage: Double = 0.0,
     val voteCount: Int = 0,
     val genreIds: List<Int> = emptyList(),
-) {
-    val posterUrl: String?
-        get() = posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
-
-    val backdropUrl: String?
-        get() = backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
-
-    val releaseYear: String
-        get() = if (releaseDate.length >= 4) releaseDate.substring(0, 4) else ""
-
-    val ratingFormatted: String
-        get() = String.format(Locale.US, "%.1f", voteAverage)
-}
+    val posterUrl: String? = posterPath?.let { "https://image.tmdb.org/t/p/w500$it" },
+    val backdropUrl: String? = backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" },
+    val releaseYear: String = if (releaseDate.length >= 4) releaseDate.substring(0, 4) else "",
+    val ratingFormatted: String = if (voteAverage > 0) String.format(Locale.US, "%.1f", voteAverage) else "",
+)
 
 @Immutable
 data class MovieGenre(
@@ -62,27 +54,16 @@ data class MovieDetail(
     val genres: List<MovieGenre> = emptyList(),
     val cast: List<CastMember> = emptyList(),
     val recommendations: List<MovieItem> = emptyList(),
-) {
-    val posterUrl: String?
-        get() = posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
-
-    val backdropUrl: String?
-        get() = backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
-
-    val releaseYear: String
-        get() = if (releaseDate.length >= 4) releaseDate.substring(0, 4) else ""
-
-    val ratingFormatted: String
-        get() = String.format(Locale.US, "%.1f", voteAverage)
-
-    val runtimeFormatted: String
-        get() {
-            if (runtime <= 0) return ""
-            val hours = runtime / 60
-            val minutes = runtime % 60
-            return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
-        }
-}
+    val posterUrl: String? = posterPath?.let { "https://image.tmdb.org/t/p/w500$it" },
+    val backdropUrl: String? = backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" },
+    val releaseYear: String = if (releaseDate.length >= 4) releaseDate.substring(0, 4) else "",
+    val ratingFormatted: String = if (voteAverage > 0) String.format(Locale.US, "%.1f", voteAverage) else "",
+    val runtimeFormatted: String = if (runtime > 0) {
+        val h = runtime / 60
+        val m = runtime % 60
+        if (h > 0) "${h}h ${m}m" else "${m}m"
+    } else "",
+)
 
 @Immutable
 data class MovieServer(

@@ -121,9 +121,24 @@ class MovieViewModel @Inject constructor(
         }
     }
 
+    // Ordered shelf categories to load on demand as the user scrolls
+    private val allCategories = listOf(
+        MovieShelfCategory.TRENDING,
+        MovieShelfCategory.POPULAR,
+        MovieShelfCategory.TOP_RATED,
+        MovieShelfCategory.ACTION_THRILLERS,
+        MovieShelfCategory.SCIFI_FANTASY,
+        MovieShelfCategory.COMEDY_HITS,
+        MovieShelfCategory.UPCOMING,
+    )
+
+    private var isLoadingNextShelf = false
+    private val activeShelfPaging = java.util.concurrent.ConcurrentHashMap.newKeySet<MovieShelfCategory>()
+
     /**
      * Strict Lazy Loading Contract:
-     * Only fetches catalog when user actually navigates into Movies tab.
+     * Only fetches the Hero movie and Top (Trending) shelf when user opens Movies tab.
+     * Subsequent shelves are loaded strictly on demand as user scrolls.
      */
     fun loadMoviesIfNeeded(forceRefresh: Boolean = false) {
         val current = _uiState.value
@@ -134,66 +149,67 @@ class MovieViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Fetch initial hero & top 4 shelves in parallel
-                val (trendingResult, popularResult, topRatedResult, actionResult) = coroutineScope {
-                    val trending = async { repository.getTrendingMovies(page = 1, forceRefresh) }
-                    val popular = async { repository.getPopularMovies(page = 1, forceRefresh) }
-                    val topRated = async { repository.getTopRatedMovies(page = 1, forceRefresh) }
-                    val action = async { repository.getMoviesByGenre(genreIds = "28,53", page = 1, forceRefresh) }
-                    listOf(trending.await(), popular.await(), topRated.await(), action.await())
-                }
-
+                // Fetch ONLY top shelf (Trending) initially to ensure zero lag / instantaneous rendering
+                val trendingResult = repository.getTrendingMovies(page = 1, forceRefresh)
                 val trendingList = trendingResult.getOrDefault(emptyList())
-                val heroMovie = trendingList.firstOrNull()
 
-                val initialShelves = listOf(
-                    MovieShelf(MovieShelfCategory.TRENDING, trendingList),
-                    MovieShelf(MovieShelfCategory.POPULAR, popularResult.getOrDefault(emptyList())),
-                    MovieShelf(MovieShelfCategory.TOP_RATED, topRatedResult.getOrDefault(emptyList())),
-                    MovieShelf(MovieShelfCategory.ACTION_THRILLERS, actionResult.getOrDefault(emptyList())),
-                ).filter { it.movies.isNotEmpty() }
-
-                if (initialShelves.isEmpty()) {
+                if (trendingList.isEmpty()) {
                     _uiState.value = MoviesUiState.Error("No movies found. Check network connection.")
                     return@launch
                 }
+
+                val heroMovie = trendingList.firstOrNull()
+                val initialShelves = listOf(
+                    MovieShelf(MovieShelfCategory.TRENDING, trendingList),
+                )
 
                 _uiState.value = MoviesUiState.Success(
                     heroMovie = heroMovie,
                     shelves = initialShelves,
                 )
-
-                // Lazily load remaining shelves in background
-                loadRemainingShelves(forceRefresh)
             } catch (e: Exception) {
                 _uiState.value = MoviesUiState.Error(e.message ?: "Failed to load movies")
             }
         }
     }
 
-    private fun loadRemainingShelves(forceRefresh: Boolean) {
+    /**
+     * Loads the next shelf in the sequence only when user scrolls near the bottom.
+     */
+    fun loadNextShelfBatch(forceRefresh: Boolean = false) {
+        val current = _uiState.value
+        if (current !is MoviesUiState.Success || isLoadingNextShelf) return
+
+        val loadedCategories = current.shelves.map { it.category }.toSet()
+        val nextCategory = allCategories.firstOrNull { it !in loadedCategories } ?: return
+
+        isLoadingNextShelf = true
         viewModelScope.launch {
             try {
-                val (scifiResult, comedyResult, upcomingResult) = coroutineScope {
-                    val scifi = async { repository.getMoviesByGenre(genreIds = "878,14", page = 1, forceRefresh) }
-                    val comedy = async { repository.getMoviesByGenre(genreIds = "35", page = 1, forceRefresh) }
-                    val upcoming = async { repository.getUpcomingMovies(page = 1, forceRefresh) }
-                    listOf(scifi.await(), comedy.await(), upcoming.await())
+                val result = when (nextCategory) {
+                    MovieShelfCategory.TRENDING -> repository.getTrendingMovies(page = 1, forceRefresh)
+                    MovieShelfCategory.POPULAR -> repository.getPopularMovies(page = 1, forceRefresh)
+                    MovieShelfCategory.TOP_RATED -> repository.getTopRatedMovies(page = 1, forceRefresh)
+                    MovieShelfCategory.ACTION_THRILLERS -> repository.getMoviesByGenre(genreIds = "28,53", page = 1, forceRefresh)
+                    MovieShelfCategory.SCIFI_FANTASY -> repository.getMoviesByGenre(genreIds = "878,14", page = 1, forceRefresh)
+                    MovieShelfCategory.COMEDY_HITS -> repository.getMoviesByGenre(genreIds = "35", page = 1, forceRefresh)
+                    MovieShelfCategory.UPCOMING -> repository.getUpcomingMovies(page = 1, forceRefresh)
                 }
 
-                val scifiShelf = MovieShelf(MovieShelfCategory.SCIFI_FANTASY, scifiResult.getOrDefault(emptyList()))
-                val comedyShelf = MovieShelf(MovieShelfCategory.COMEDY_HITS, comedyResult.getOrDefault(emptyList()))
-                val upcomingShelf = MovieShelf(MovieShelfCategory.UPCOMING, upcomingResult.getOrDefault(emptyList()))
-
-                val current = _uiState.value
-                if (current is MoviesUiState.Success) {
-                    val additional = listOf(scifiShelf, comedyShelf, upcomingShelf).filter { it.movies.isNotEmpty() }
-                    _uiState.value = current.copy(
-                        shelves = (current.shelves + additional).distinctBy { it.category },
-                    )
+                val movies = result.getOrDefault(emptyList())
+                if (movies.isNotEmpty()) {
+                    val currentState = _uiState.value
+                    if (currentState is MoviesUiState.Success) {
+                        val newShelf = MovieShelf(nextCategory, movies)
+                        _uiState.value = currentState.copy(
+                            shelves = (currentState.shelves + newShelf).distinctBy { it.category },
+                        )
+                    }
                 }
             } catch (_: Exception) {
-                // Secondary shelves load error is non-fatal
+                // Non-fatal if a secondary shelf fails
+            } finally {
+                isLoadingNextShelf = false
             }
         }
     }
@@ -226,7 +242,7 @@ class MovieViewModel @Inject constructor(
         if (current !is MoviesUiState.Success) return
 
         val shelf = current.shelves.firstOrNull { it.category == category } ?: return
-        if (!shelf.hasMore || shelf.isLoadingMore) return
+        if (!shelf.hasMore || shelf.isLoadingMore || !activeShelfPaging.add(category)) return
 
         // Mark shelf loading
         _uiState.value = current.copy(
@@ -236,35 +252,39 @@ class MovieViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            val nextPage = shelf.page + 1
-            val result = when (category) {
-                MovieShelfCategory.TRENDING -> repository.getTrendingMovies(page = nextPage)
-                MovieShelfCategory.POPULAR -> repository.getPopularMovies(page = nextPage)
-                MovieShelfCategory.TOP_RATED -> repository.getTopRatedMovies(page = nextPage)
-                MovieShelfCategory.ACTION_THRILLERS -> repository.getMoviesByGenre(genreIds = "28,53", page = nextPage)
-                MovieShelfCategory.SCIFI_FANTASY -> repository.getMoviesByGenre(genreIds = "878,14", page = nextPage)
-                MovieShelfCategory.COMEDY_HITS -> repository.getMoviesByGenre(genreIds = "35", page = nextPage)
-                MovieShelfCategory.UPCOMING -> repository.getUpcomingMovies(page = nextPage)
-            }
+            try {
+                val nextPage = shelf.page + 1
+                val result = when (category) {
+                    MovieShelfCategory.TRENDING -> repository.getTrendingMovies(page = nextPage)
+                    MovieShelfCategory.POPULAR -> repository.getPopularMovies(page = nextPage)
+                    MovieShelfCategory.TOP_RATED -> repository.getTopRatedMovies(page = nextPage)
+                    MovieShelfCategory.ACTION_THRILLERS -> repository.getMoviesByGenre(genreIds = "28,53", page = nextPage)
+                    MovieShelfCategory.SCIFI_FANTASY -> repository.getMoviesByGenre(genreIds = "878,14", page = nextPage)
+                    MovieShelfCategory.COMEDY_HITS -> repository.getMoviesByGenre(genreIds = "35", page = nextPage)
+                    MovieShelfCategory.UPCOMING -> repository.getUpcomingMovies(page = nextPage)
+                }
 
-            val newMovies = result.getOrDefault(emptyList())
-            val currentState = _uiState.value
-            if (currentState is MoviesUiState.Success) {
-                _uiState.value = currentState.copy(
-                    shelves = currentState.shelves.map {
-                        if (it.category == category) {
-                            val combined = (it.movies + newMovies).distinctBy { movie -> movie.id }
-                            it.copy(
-                                movies = combined,
-                                page = nextPage,
-                                hasMore = newMovies.isNotEmpty(),
-                                isLoadingMore = false,
-                            )
-                        } else {
-                            it
-                        }
-                    },
-                )
+                val newMovies = result.getOrDefault(emptyList())
+                val currentState = _uiState.value
+                if (currentState is MoviesUiState.Success) {
+                    _uiState.value = currentState.copy(
+                        shelves = currentState.shelves.map {
+                            if (it.category == category) {
+                                val combined = (it.movies + newMovies).distinctBy { movie -> movie.id }
+                                it.copy(
+                                    movies = combined,
+                                    page = nextPage,
+                                    hasMore = newMovies.isNotEmpty(),
+                                    isLoadingMore = false,
+                                )
+                            } else {
+                                it
+                            }
+                        },
+                    )
+                }
+            } finally {
+                activeShelfPaging.remove(category)
             }
         }
     }

@@ -43,21 +43,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.movie.CastMember
 import io.github.aedev.flow.data.movie.MovieDetail
@@ -169,6 +167,15 @@ private fun MovieDetailContent(
     bottomPadding: androidx.compose.ui.unit.Dp,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val scrimBrush = remember(surfaceColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Transparent,
+                surfaceColor.copy(alpha = 0.5f),
+                surfaceColor,
+            ),
+        )
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -184,10 +191,7 @@ private fun MovieDetailContent(
                 val imageUrl = movie.backdropUrl ?: movie.posterUrl
                 if (imageUrl != null) {
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(imageUrl)
-                            .crossfade(true)
-                            .build(),
+                        model = imageUrl,
                         contentDescription = movie.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -204,15 +208,7 @@ private fun MovieDetailContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    surfaceColor.copy(alpha = 0.5f),
-                                    surfaceColor,
-                                ),
-                            ),
-                        ),
+                        .background(scrimBrush),
                 )
             }
         }
@@ -469,10 +465,7 @@ private fun CastItem(
     ) {
         if (actor.profileUrl != null) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(actor.profileUrl)
-                    .crossfade(true)
-                    .build(),
+                model = actor.profileUrl,
                 contentDescription = actor.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

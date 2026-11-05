@@ -10,16 +10,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.data.movie.MovieItem
 import io.github.aedev.flow.data.movie.MovieShelf
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 @Composable
 fun MovieShelfRow(
@@ -35,22 +37,24 @@ fun MovieShelfRow(
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberLazyListState()
+    // Preserve scroll offset across vertical LazyColumn recycling
+    val listState = rememberSaveable(shelf.category.name, saver = LazyListState.Saver) {
+        LazyListState()
+    }
 
-    // Pagination trigger on horizontal scroll
-    val shouldLoadMore = remember {
-        derivedStateOf {
+    // High performance pagination trigger: snapshotFlow without recomposition churn
+    LaunchedEffect(listState, shelf.hasMore, shelf.isLoadingMore) {
+        snapshotFlow {
             val layoutInfo = listState.layoutInfo
             val totalItems = layoutInfo.totalItemsCount
             val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            totalItems > 0 && lastVisibleItem >= totalItems - 4
+            totalItems > 0 && lastVisibleItem >= totalItems - 2
         }
-    }
-
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value && shelf.hasMore && !shelf.isLoadingMore) {
-            onLoadMore()
-        }
+            .distinctUntilChanged()
+            .filter { it && shelf.hasMore && !shelf.isLoadingMore }
+            .collect {
+                onLoadMore()
+            }
     }
 
     Column(
@@ -83,6 +87,7 @@ fun MovieShelfRow(
             items(
                 items = shelf.movies,
                 key = { movie: MovieItem -> movie.id },
+                contentType = { "movie_card" },
             ) { movie ->
                 MovieCard(
                     movie = movie,
@@ -91,7 +96,7 @@ fun MovieShelfRow(
             }
 
             if (shelf.isLoadingMore) {
-                item(key = "shelf_loading_more") {
+                item(key = "shelf_loading_more", contentType = "loading") {
                     Box(
                         modifier = Modifier
                             .width(80.dp)

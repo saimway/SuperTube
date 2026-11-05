@@ -36,6 +36,7 @@ import io.github.aedev.flow.ui.screens.movies.MoviePlayerScreen
 import io.github.aedev.flow.ui.screens.movies.MovieSearchScreen
 import io.github.aedev.flow.ui.screens.movies.MovieViewModel
 import io.github.aedev.flow.ui.screens.movies.MoviesScreen
+import io.github.aedev.flow.ui.screens.movies.sharedMovieViewModel
 import io.github.aedev.flow.ui.screens.music.sharedMusicPlayerViewModel
 import io.github.aedev.flow.ui.screens.notifications.NotificationScreen
 import io.github.aedev.flow.ui.screens.onboarding.OnboardingScreen
@@ -292,7 +293,7 @@ fun NavGraphBuilder.flowAppGraph(
 
     composable("movies") {
         currentRoute.value = "movies"
-        val movieViewModel: MovieViewModel = hiltViewModel()
+        val movieViewModel = sharedMovieViewModel()
         MoviesScreen(
             viewModel = movieViewModel,
             onMovieClick = { movieId ->
@@ -315,7 +316,7 @@ fun NavGraphBuilder.flowAppGraph(
     ) { backStackEntry ->
         currentRoute.value = "movie"
         val movieId = backStackEntry.arguments?.getLong("id") ?: 0L
-        val movieViewModel: MovieViewModel = hiltViewModel()
+        val movieViewModel = sharedMovieViewModel()
         MovieDetailScreen(
             movieId = movieId,
             viewModel = movieViewModel,
@@ -352,7 +353,7 @@ fun NavGraphBuilder.flowAppGraph(
 
     composable("movieSearch") {
         currentRoute.value = "movieSearch"
-        val movieViewModel: MovieViewModel = hiltViewModel()
+        val movieViewModel = sharedMovieViewModel()
         MovieSearchScreen(
             viewModel = movieViewModel,
             onBack = { navController.popBackStack() },

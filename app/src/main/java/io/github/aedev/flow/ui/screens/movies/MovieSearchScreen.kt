@@ -35,9 +35,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -51,6 +51,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.screens.movies.components.MovieCard
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 @Composable
 fun MovieSearchScreen(
@@ -66,20 +68,19 @@ fun MovieSearchScreen(
     val focusManager = LocalFocusManager.current
     val gridState = rememberLazyGridState()
 
-    // Pagination on scroll
-    val shouldLoadMore = remember {
-        derivedStateOf {
+    // Smooth pagination on scroll via snapshotFlow
+    LaunchedEffect(gridState, searchState.hasMore, searchState.isSearching) {
+        snapshotFlow {
             val layoutInfo = gridState.layoutInfo
             val total = layoutInfo.totalItemsCount
             val last = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            total > 0 && last >= total - 6
+            total > 0 && last >= total - 4
         }
-    }
-
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value && searchState.hasMore && !searchState.isSearching) {
-            viewModel.loadMoreSearchResults()
-        }
+            .distinctUntilChanged()
+            .filter { it && searchState.hasMore && !searchState.isSearching }
+            .collect {
+                viewModel.loadMoreSearchResults()
+            }
     }
 
     LaunchedEffect(Unit) {

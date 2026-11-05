@@ -26,19 +26,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.movie.MovieItem
 
@@ -50,6 +48,17 @@ fun MovieHeroSection(
     modifier: Modifier = Modifier,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val scrimBrush = remember(surfaceColor) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Transparent,
+                surfaceColor.copy(alpha = 0.4f),
+                surfaceColor.copy(alpha = 0.85f),
+                surfaceColor,
+            ),
+            startY = 0f,
+        )
+    }
 
     Box(
         modifier = modifier
@@ -60,10 +69,7 @@ fun MovieHeroSection(
         val backdropUrl = movie.backdropUrl ?: movie.posterUrl
         if (backdropUrl != null) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(backdropUrl)
-                    .crossfade(true)
-                    .build(),
+                model = backdropUrl,
                 contentDescription = movie.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -80,17 +86,7 @@ fun MovieHeroSection(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            surfaceColor.copy(alpha = 0.4f),
-                            surfaceColor.copy(alpha = 0.85f),
-                            surfaceColor,
-                        ),
-                        startY = 0f,
-                    ),
-                ),
+                .background(scrimBrush),
         )
 
         // Overlay Content
