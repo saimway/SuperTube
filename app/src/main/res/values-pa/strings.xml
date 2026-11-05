@@ -854,7 +854,7 @@
     <string name="app_icon_picker_subtitle">ਇੱਕ ਲਾਂਚਰ ਆਈਕਨ ਸ਼ੈਲੀ ਚੁਣੋ। ਤਬਦੀਲੀ ਤੁਰੰਤ ਲਾਗੂ ਹੁੰਦੀ ਹੈ ਅਤੇ ਲਾਂਚਰ ਥੋੜ੍ਹੇ ਸਮੇਂ ਲਈ ਰਿਫ੍ਰੈਸ਼ ਹੋ ਜਾਵੇਗਾ।</string>
     <string name="app_icon_picker_warning">ਆਈਕਨ ਨੂੰ ਬਦਲਣ ਨਾਲ ਤੁਹਾਡੀ ਹੋਮ ਸਕ੍ਰੀਨ ਤੋਂ Flow ਨੂੰ ਇੱਕ ਪਲ ਲਈ ਹਟਾ ਦਿੱਤਾ ਜਾ ਸਕਦਾ ਹੈ। ਜੇਕਰ ਲੋੜ ਹੋਵੇ ਤਾਂ ਇਸਨੂੰ ਐਪ ਦਰਾਜ਼ ਤੋਂ ਵਾਪਸ ਸ਼ਾਮਲ ਕਰੋ।</string>
     <string name="app_icon_apply_toast">ਆਈਕਨ ਅੱਪਡੇਟ ਕੀਤਾ ਗਿਆ - ਤੁਹਾਡਾ ਲਾਂਚਰ ਤਾਜ਼ਾ ਹੋ ਜਾਵੇਗਾ</string>
-    <string name="icon_name_flow_red">Flow ਲਾਲ</string>
+    <string name="icon_name_flow_red">SuperTube ਲਾਲ</string>
     <string name="icon_name_flow_light">Flow ਲਾਈਟ</string>
     <string name="icon_name_flow_play">Flow ਪਲੇ</string>
     <string name="icon_name_amoled">AMOLED ਗੂੜ੍ਹਾ</string>

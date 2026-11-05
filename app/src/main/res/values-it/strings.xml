@@ -374,7 +374,7 @@
     <string name="app_icon_picker_subtitle">Scegli uno stile per l\'icona del launcher. La modifica ha effetto immediato e il launcher si aggiornerà brevemente.</string>
     <string name="app_icon_picker_warning">Cambiare icona potrebbe rimuovere momentaneamente Flow dalla schermata home. Aggiungila nuovamente dal drawer delle app, se necessario.</string>
     <string name="app_icon_apply_toast">Icona aggiornata - il tuo launcher si aggiornerà</string>
-    <string name="icon_name_flow_red">Rosso Flow</string>
+    <string name="icon_name_flow_red">Rosso SuperTube</string>
     <string name="icon_name_amoled">AMOLED scuro</string>
     <string name="icon_name_monochrome">Monocromatica</string>
     <string name="icon_name_ghost">Fantasma</string>

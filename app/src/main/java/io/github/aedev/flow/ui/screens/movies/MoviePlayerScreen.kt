@@ -157,8 +157,11 @@ fun MoviePlayerScreen(
     val detailState by viewModel.detailState.collectAsStateWithLifecycle()
     val movieDetail = detailState.detail
 
-    LaunchedEffect(movieId) {
+    DisposableEffect(movieId) {
         viewModel.loadMovieDetail(movieId)
+        onDispose {
+            viewModel.cancelDetailFetch()
+        }
     }
 
     var currentServer by remember {

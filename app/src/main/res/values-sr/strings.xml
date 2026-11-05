@@ -874,7 +874,7 @@
     <string name="app_icon_picker_subtitle">Изаберите стил иконе покретача. Промена ступа на снагу одмах и покретач ће се накратко освежити.</string>
     <string name="app_icon_picker_warning">Промена иконе може на тренутак уклонити Flow са вашег почетног екрана. Додајте га назад из фиоке апликација ако је потребно.</string>
     <string name="app_icon_apply_toast">Икона је ажурирана - ваш покретач ће се освежити</string>
-    <string name="icon_name_flow_red">Flow Ред</string>
+    <string name="icon_name_flow_red">SuperTube Ред</string>
     <string name="icon_name_flow_light">Flow Лигхт</string>
     <string name="icon_name_flow_play">Flow Плаи</string>
     <string name="icon_name_amoled">AMOLED Дарк</string>

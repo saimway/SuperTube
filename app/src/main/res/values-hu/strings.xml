@@ -851,7 +851,7 @@
     <string name="app_icon_picker_subtitle">Válasszon indítóikon stílust. A változás azonnal életbe lép, és az indító rövid időre frissül.</string>
     <string name="app_icon_picker_warning">Az ikon megváltoztatásával az Flow egy pillanatra eltávolítható a kezdőképernyőről. Ha szükséges, adja vissza az alkalmazásfiókból.</string>
     <string name="app_icon_apply_toast">Ikon frissítve – az indító frissíteni fog</string>
-    <string name="icon_name_flow_red">Flow Piros</string>
+    <string name="icon_name_flow_red">SuperTube Piros</string>
     <string name="icon_name_flow_light">Flow Fény</string>
     <string name="icon_name_flow_play">Flow Lejátszás</string>
     <string name="icon_name_amoled">AMOLED sötét</string>

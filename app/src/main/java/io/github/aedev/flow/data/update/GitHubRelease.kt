@@ -7,10 +7,12 @@ import java.time.Instant
 
 private val ReleaseJson = Json { ignoreUnknownKeys = true }
 private const val SHA256_PREFIX = "sha256:"
-private const val FOSS_PREFIX = "flow-foss"
-private const val UNIVERSAL_APK = "flow.apk"
+private const val FOSS_PREFIX = "supertube-foss"
+private const val LEGACY_FOSS_PREFIX = "flow-foss"
+private const val UNIVERSAL_APK = "supertube.apk"
+private const val LEGACY_UNIVERSAL_APK = "flow.apk"
 private const val APK_SUFFIX = ".apk"
-private val NightlyApk = Regex("""flow-nightly-(\d+)\.apk""", RegexOption.IGNORE_CASE)
+private val NightlyApk = Regex("""(?:supertube|flow)-nightly-(\d+)\.apk""", RegexOption.IGNORE_CASE)
 
 @Serializable
 internal data class GitHubRelease(
@@ -79,15 +81,34 @@ internal fun selectApk(
 ): GitHubAsset? {
     val github =
         assets.filter {
-            it.name.endsWith(APK_SUFFIX, ignoreCase = true) && !it.name.startsWith(FOSS_PREFIX, ignoreCase = true)
+            it.name.endsWith(APK_SUFFIX, ignoreCase = true) &&
+                !it.name.startsWith(FOSS_PREFIX, ignoreCase = true) &&
+                !it.name.startsWith(LEGACY_FOSS_PREFIX, ignoreCase = true)
         }
-    val splits = github.filter { asset -> supportedAbis.any { asset.name.equals("flow-$it.apk", ignoreCase = true) } }
-    if (splits.isNotEmpty()) {
-        return supportedAbis.firstNotNullOfOrNull { abi -> splits.firstOrNull { it.name.equals("flow-$abi.apk", ignoreCase = true) } }
+    val splits = github.filter { asset ->
+        supportedAbis.any {
+            asset.name.equals("supertube-$it.apk", ignoreCase = true) ||
+                asset.name.equals("flow-$it.apk", ignoreCase = true)
+        }
     }
-    val publishesSplits = github.any { it.name.startsWith("flow-", ignoreCase = true) }
-    if (publishesSplits && github.none { it.name.equals(UNIVERSAL_APK, ignoreCase = true) }) return null
-    return github.firstOrNull { it.name.equals(UNIVERSAL_APK, ignoreCase = true) } ?: github.firstOrNull()
+    if (splits.isNotEmpty()) {
+        return supportedAbis.firstNotNullOfOrNull { abi ->
+            splits.firstOrNull { it.name.equals("supertube-$abi.apk", ignoreCase = true) }
+                ?: splits.firstOrNull { it.name.equals("flow-$abi.apk", ignoreCase = true) }
+        }
+    }
+    val publishesSplits = github.any {
+        it.name.startsWith("supertube-", ignoreCase = true) || it.name.startsWith("flow-", ignoreCase = true)
+    }
+    if (publishesSplits && github.none {
+            it.name.equals(UNIVERSAL_APK, ignoreCase = true) || it.name.equals(LEGACY_UNIVERSAL_APK, ignoreCase = true)
+        }
+    ) {
+        return null
+    }
+    return github.firstOrNull { it.name.equals(UNIVERSAL_APK, ignoreCase = true) }
+        ?: github.firstOrNull { it.name.equals(LEGACY_UNIVERSAL_APK, ignoreCase = true) }
+        ?: github.firstOrNull()
 }
 
 private fun GitHubAsset.toReleaseApk(): ReleaseApk =

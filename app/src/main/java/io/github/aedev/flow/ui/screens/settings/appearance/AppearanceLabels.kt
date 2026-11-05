@@ -16,6 +16,6 @@ internal fun themeVariantLabel(variant: ThemeVariant): Int =
 
 /** Every alias in manifest order; the order and the set come from [AppIcons], never from this file. */
 internal val appIconOptions: List<LauncherIcon>
-    get() = AppIcons.ALL
+    get() = AppIcons.OPTIONS
 
 internal fun appIconOption(suffix: String): LauncherIcon = AppIcons.icon(suffix)

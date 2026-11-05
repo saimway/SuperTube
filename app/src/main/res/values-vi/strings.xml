@@ -554,7 +554,7 @@
     <string name="app_icon_picker_subtitle">Chọn kiểu biểu tượng khởi chạy. Thay đổi có hiệu lực ngay và màn hình chính sẽ tải lại trong giây lát.</string>
     <string name="app_icon_picker_warning">Việc đổi biểu tượng có thể tạm thời gỡ Flow khỏi màn hình chính. Nếu cần, hãy thêm lại từ ngăn kéo ứng dụng.</string>
     <string name="app_icon_apply_toast">Đã cập nhật biểu tượng – màn hình chính sẽ tải lại</string>
-    <string name="icon_name_flow_red">Flow Đỏ</string>
+    <string name="icon_name_flow_red">SuperTube Đỏ</string>
     <string name="icon_name_flow_light">Flow Sáng</string>
     <string name="icon_name_flow_play">Flow Phát</string>
     <string name="icon_name_amoled">AMOLED Tối</string>

@@ -830,7 +830,7 @@
     <string name="app_icon_picker_subtitle">揀個啟動器圖示樣式。呢個變動會即刻生效，啟動器會短暫刷新。</string>
     <string name="app_icon_picker_warning">更改圖示可能會喺主畫面移除 Flow 一陣。如果需要，可以喺應用程式抽屜加返佢。</string>
     <string name="app_icon_apply_toast">圖示更新咗 - 你嘅啟動器會重新整理</string>
-    <string name="icon_name_flow_red">Flow 紅色</string>
+    <string name="icon_name_flow_red">SuperTube 紅色</string>
     <string name="icon_name_flow_light">Flow 光</string>
     <string name="icon_name_flow_play">Flow 玩</string>
     <string name="icon_name_amoled">AMOLED 深色</string>

@@ -118,26 +118,30 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = rootDir.resolve("release.keystore")
+            val supertubeKeystore = rootDir.resolve("supertube.keystore")
+            val releaseKeystore = rootDir.resolve("release.keystore")
+            storeFile = if (releaseKeystore.exists()) releaseKeystore else supertubeKeystore
             storePassword = (project.findProperty("storePassword") as? String)
                 ?: localProperties.getProperty("storePassword")
                 ?: System.getenv("STORE_PASSWORD")
-                ?: ""
+                ?: "supertube"
             keyAlias = (project.findProperty("keyAlias") as? String)
                 ?: localProperties.getProperty("keyAlias")
                 ?: System.getenv("KEY_ALIAS")
-                ?: ""
+                ?: "supertube"
             keyPassword = (project.findProperty("keyPassword") as? String)
                 ?: localProperties.getProperty("keyPassword")
                 ?: System.getenv("KEY_PASSWORD")
-                ?: ""
+                ?: "supertube"
         }
         // One long-lived key for every nightly, so each build installs over the last one.
         create("nightly") {
-            storeFile = rootDir.resolve("nightly.keystore")
-            storePassword = System.getenv("NIGHTLY_STORE_PASSWORD") ?: localProperties.getProperty("nightlyStorePassword") ?: ""
-            keyAlias = System.getenv("NIGHTLY_KEY_ALIAS") ?: localProperties.getProperty("nightlyKeyAlias") ?: ""
-            keyPassword = System.getenv("NIGHTLY_KEY_PASSWORD") ?: localProperties.getProperty("nightlyKeyPassword") ?: ""
+            val supertubeKeystore = rootDir.resolve("supertube.keystore")
+            val nightlyKeystore = rootDir.resolve("nightly.keystore")
+            storeFile = if (nightlyKeystore.exists()) nightlyKeystore else supertubeKeystore
+            storePassword = System.getenv("NIGHTLY_STORE_PASSWORD") ?: localProperties.getProperty("nightlyStorePassword") ?: "supertube"
+            keyAlias = System.getenv("NIGHTLY_KEY_ALIAS") ?: localProperties.getProperty("nightlyKeyAlias") ?: "supertube"
+            keyPassword = System.getenv("NIGHTLY_KEY_PASSWORD") ?: localProperties.getProperty("nightlyKeyPassword") ?: "supertube"
         }
     }
 

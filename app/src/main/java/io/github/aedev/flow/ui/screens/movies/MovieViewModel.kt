@@ -102,6 +102,10 @@ class MovieViewModel @Inject constructor(
     private val _selectedServer = MutableStateFlow(MovieServer.DEFAULT_SERVER)
     val selectedServer: StateFlow<MovieServer> = _selectedServer.asStateFlow()
 
+    private var feedJob: Job? = null
+    private var shelfJob: Job? = null
+    private var genreJob: Job? = null
+    private var pagingJob: Job? = null
     private var searchJob: Job? = null
     private var detailJob: Job? = null
 
@@ -139,15 +143,17 @@ class MovieViewModel @Inject constructor(
      * Strict Lazy Loading Contract:
      * Only fetches the Hero movie and Top (Trending) shelf when user opens Movies tab.
      * Subsequent shelves are loaded strictly on demand as user scrolls.
+     * Cancels immediately if user navigates away.
      */
     fun loadMoviesIfNeeded(forceRefresh: Boolean = false) {
         val current = _uiState.value
         if (current is MoviesUiState.Success && !forceRefresh) return
-        if (current is MoviesUiState.Loading && !forceRefresh) return
+        if (current is MoviesUiState.Loading && !forceRefresh && feedJob?.isActive == true) return
 
+        feedJob?.cancel()
         _uiState.value = MoviesUiState.Loading
 
-        viewModelScope.launch {
+        feedJob = viewModelScope.launch {
             try {
                 // Fetch ONLY top shelf (Trending) initially to ensure zero lag / instantaneous rendering
                 val trendingResult = repository.getTrendingMovies(page = 1, forceRefresh)
@@ -168,6 +174,7 @@ class MovieViewModel @Inject constructor(
                     shelves = initialShelves,
                 )
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 _uiState.value = MoviesUiState.Error(e.message ?: "Failed to load movies")
             }
         }
@@ -178,13 +185,13 @@ class MovieViewModel @Inject constructor(
      */
     fun loadNextShelfBatch(forceRefresh: Boolean = false) {
         val current = _uiState.value
-        if (current !is MoviesUiState.Success || isLoadingNextShelf) return
+        if (current !is MoviesUiState.Success || isLoadingNextShelf || shelfJob?.isActive == true) return
 
         val loadedCategories = current.shelves.map { it.category }.toSet()
         val nextCategory = allCategories.firstOrNull { it !in loadedCategories } ?: return
 
         isLoadingNextShelf = true
-        viewModelScope.launch {
+        shelfJob = viewModelScope.launch {
             try {
                 val result = when (nextCategory) {
                     MovieShelfCategory.TRENDING -> repository.getTrendingMovies(page = 1, forceRefresh)
@@ -206,8 +213,8 @@ class MovieViewModel @Inject constructor(
                         )
                     }
                 }
-            } catch (_: Exception) {
-                // Non-fatal if a secondary shelf fails
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             } finally {
                 isLoadingNextShelf = false
             }
@@ -218,6 +225,7 @@ class MovieViewModel @Inject constructor(
         val current = _uiState.value
         if (current !is MoviesUiState.Success) return
 
+        genreJob?.cancel()
         if (genre == null || genre.id == 0) {
             _uiState.value = current.copy(selectedGenre = null, genreMovies = emptyList(), isGenreLoading = false)
             return
@@ -225,14 +233,18 @@ class MovieViewModel @Inject constructor(
 
         _uiState.value = current.copy(selectedGenre = genre, isGenreLoading = true)
 
-        viewModelScope.launch {
-            val result = repository.getMoviesByGenre(genreIds = genre.id.toString(), page = 1)
-            val currentState = _uiState.value
-            if (currentState is MoviesUiState.Success && currentState.selectedGenre?.id == genre.id) {
-                _uiState.value = currentState.copy(
-                    genreMovies = result.getOrDefault(emptyList()),
-                    isGenreLoading = false,
-                )
+        genreJob = viewModelScope.launch {
+            try {
+                val result = repository.getMoviesByGenre(genreIds = genre.id.toString(), page = 1)
+                val currentState = _uiState.value
+                if (currentState is MoviesUiState.Success && currentState.selectedGenre?.id == genre.id) {
+                    _uiState.value = currentState.copy(
+                        genreMovies = result.getOrDefault(emptyList()),
+                        isGenreLoading = false,
+                    )
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             }
         }
     }
@@ -251,7 +263,7 @@ class MovieViewModel @Inject constructor(
             },
         )
 
-        viewModelScope.launch {
+        pagingJob = viewModelScope.launch {
             try {
                 val nextPage = shelf.page + 1
                 val result = when (category) {
@@ -353,5 +365,42 @@ class MovieViewModel @Inject constructor(
         val state = _searchState.value
         if (!state.hasMore || state.isSearching || state.query.isBlank()) return
         performSearch(state.query, state.page + 1)
+    }
+
+    /**
+     * Immediately cancels all active network/coroutine jobs for the main feed,
+     * shelves, and genre filtering so zero background processing or network
+     * usage occurs when the user leaves the Movies screen.
+     */
+    fun cancelActiveFetches() {
+        feedJob?.cancel()
+        feedJob = null
+        shelfJob?.cancel()
+        shelfJob = null
+        genreJob?.cancel()
+        genreJob = null
+        pagingJob?.cancel()
+        pagingJob = null
+        activeShelfPaging.clear()
+        isLoadingNextShelf = false
+        if (_uiState.value is MoviesUiState.Loading) {
+            _uiState.value = MoviesUiState.Idle
+        }
+    }
+
+    /**
+     * Cancels active movie detail fetching when user leaves the detail/player screen.
+     */
+    fun cancelDetailFetch() {
+        detailJob?.cancel()
+        detailJob = null
+    }
+
+    /**
+     * Cancels active search requests when user leaves the search screen.
+     */
+    fun cancelSearch() {
+        searchJob?.cancel()
+        searchJob = null
     }
 }

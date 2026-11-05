@@ -173,6 +173,18 @@ class MovieViewModelTest {
     }
 
     @Test
+    fun `cancelActiveFetches cancels loading job and resets loading state to Idle`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.loadMoviesIfNeeded()
+
+        assertThat(viewModel.uiState.value).isEqualTo(MoviesUiState.Loading)
+
+        viewModel.cancelActiveFetches()
+
+        assertThat(viewModel.uiState.value).isEqualTo(MoviesUiState.Idle)
+    }
+
+    @Test
     fun `search query debounces and updates search state`() = runTest {
         val viewModel = createViewModel()
 

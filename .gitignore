@@ -30,6 +30,7 @@ LibreTube-master
 # Secrets and Local configuration
 local.properties
 *.keystore
+!supertube.keystore
 *.jks
 key.properties
 pipepipe

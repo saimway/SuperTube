@@ -851,7 +851,7 @@
     <string name="app_icon_picker_subtitle">දියත් කිරීමේ නිරූපක විලාසයක් තෝරන්න. වෙනස් කිරීම වහාම ක්රියාත්මක වන අතර දියත් කිරීම කෙටියෙන් නැවුම් වනු ඇත.</string>
     <string name="app_icon_picker_warning">නිරූපකය වෙනස් කිරීම ඔබේ මුල් තිරයෙන් මොහොතකට Flow ඉවත් කළ හැක. අවශ්ය නම් යෙදුම් ලාච්චුවෙන් එය නැවත එක් කරන්න.</string>
     <string name="app_icon_apply_toast">නිරූපකය යාවත්කාලීන කරන ලදී - ඔබේ දියත් කිරීම නැවුම් වනු ඇත</string>
-    <string name="icon_name_flow_red">Flow රතු</string>
+    <string name="icon_name_flow_red">SuperTube රතු</string>
     <string name="icon_name_flow_light">Flow ආලෝකය</string>
     <string name="icon_name_flow_play">Flow Play</string>
     <string name="icon_name_amoled">AMOLED අඳුරු</string>

@@ -31,11 +31,13 @@ class GitHubReleaseTest {
     @Test
     fun `an unpublished abi falls back to the universal build`() {
         assertThat(selectApk(splits + asset("flow.apk"), listOf("x86_64"))?.name).isEqualTo("flow.apk")
+        assertThat(selectApk(listOf(asset("supertube-arm64-v8a.apk"), asset("supertube.apk")), listOf("x86_64"))?.name).isEqualTo("supertube.apk")
     }
 
     @Test
     fun `a foss build is never picked`() {
         assertThat(selectApk(listOf(asset("flow-foss.apk"), asset("flow.apk")), listOf("arm64-v8a"))?.name).isEqualTo("flow.apk")
+        assertThat(selectApk(listOf(asset("supertube-foss.apk"), asset("supertube.apk")), listOf("arm64-v8a"))?.name).isEqualTo("supertube.apk")
     }
 
     @Test

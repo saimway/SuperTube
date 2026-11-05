@@ -851,7 +851,7 @@
     <string name="app_icon_picker_subtitle">لانچر آئیکن اسٹائل کا انتخاب کریں۔ تبدیلی فوری طور پر نافذ ہوتی ہے اور لانچر مختصر طور پر ریفریش ہو جائے گا۔</string>
     <string name="app_icon_picker_warning">آئیکن کو تبدیل کرنے سے آپ کی ہوم اسکرین سے ایک لمحے کے لیے Flow ہٹ سکتا ہے۔ اگر ضرورت ہو تو اسے ایپ ڈراور سے واپس شامل کریں۔</string>
     <string name="app_icon_apply_toast">آئیکن کو اپ ڈیٹ کیا گیا - آپ کا لانچر ریفریش ہو جائے گا۔</string>
-    <string name="icon_name_flow_red">Flow سرخ</string>
+    <string name="icon_name_flow_red">SuperTube سرخ</string>
     <string name="icon_name_flow_light">Flow لائٹ</string>
     <string name="icon_name_flow_play">Flow کھیلیں</string>
     <string name="icon_name_amoled">AMOLED سیاہ</string>

@@ -351,7 +351,7 @@
     <string name="app_icon_picker_subtitle">Выберите стиль значка. Изменения вступят в силу сразу, а рабочий стол перезапустится.</string>
     <string name="app_icon_picker_warning">Изменение значка может на мгновение удалит Flow с главного экрана. При необходимости добавьте его обратно из панели приложений.</string>
     <string name="app_icon_apply_toast">Иконка обновлена - рабочий стол обновится</string>
-    <string name="icon_name_flow_red">Flow Red</string>
+    <string name="icon_name_flow_red">SuperTube Red</string>
     <string name="icon_name_amoled">AMOLED Dark</string>
     <string name="icon_name_monochrome">Монохром</string>
     <string name="icon_name_ghost">Призрак</string>

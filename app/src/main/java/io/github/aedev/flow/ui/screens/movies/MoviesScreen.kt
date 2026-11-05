@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -63,9 +64,13 @@ fun MoviesScreen(
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Strict lazy loading: fetch only when this screen enters composition
-    LaunchedEffect(viewModel) {
+    // Strict lazy loading: fetch ONLY when this screen enters composition,
+    // and immediately abort all active network calls when user leaves the Movies tab.
+    DisposableEffect(viewModel) {
         viewModel.loadMoviesIfNeeded()
+        onDispose {
+            viewModel.cancelActiveFetches()
+        }
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

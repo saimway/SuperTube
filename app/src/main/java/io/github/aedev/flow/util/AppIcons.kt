@@ -46,5 +46,18 @@ object AppIcons {
 
     val ALL_SUFFIXES: List<String> = ALL.map { it.suffix }
 
+    /**
+     * Legacy aliases with old branding or 'F' symbols that are hidden from the picker.
+     * Kept registered in the manifest so existing launchers don't drop their shortcuts.
+     */
+    private val HIDDEN_SUFFIXES = setOf(
+        ".IconFlowLight",
+        ".IconFlowPlay",
+        ".IconExpressiveSegmented",
+    )
+
+    /** The launcher icons visible in the App Icon picker dialog. */
+    val OPTIONS: List<LauncherIcon> = ALL.filter { it.suffix !in HIDDEN_SUFFIXES }
+
     fun icon(suffix: String): LauncherIcon = ALL.firstOrNull { it.suffix == suffix } ?: ALL.first { it.suffix == DEFAULT_SUFFIX }
 }
