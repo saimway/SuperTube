@@ -313,12 +313,7 @@ fun MoviePlayerScreen(
             )
 
             // Connecting / Thumbnail Overlay (stays smoothly visible until stream plays)
-            AnimatedVisibility(
-                visible = !isStreamPlaying && !hasError,
-                enter = fadeIn(),
-                exit = fadeOut(animationSpec = tween(500)),
-                modifier = Modifier.fillMaxSize(),
-            ) {
+            if (!isStreamPlaying && !hasError) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     if (backdropUrl != null) {
                         AsyncImage(
@@ -575,12 +570,7 @@ fun MoviePlayerScreen(
                     )
 
                     // RabbitMeow-style Backdrop & Connecting Overlay (stays until stream plays)
-                    AnimatedVisibility(
-                        visible = !isStreamPlaying && !hasError,
-                        enter = fadeIn(),
-                        exit = fadeOut(animationSpec = tween(500)),
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
+                    if (!isStreamPlaying && !hasError) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             if (backdropUrl != null) {
                                 AsyncImage(
@@ -896,7 +886,7 @@ fun MoviePlayerScreen(
                         if (movieDetail.cast.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = stringResource(R.string.movie_cast),
+                                text = stringResource(R.string.movie_details_cast),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )
