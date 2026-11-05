@@ -1255,6 +1255,9 @@
     <string name="movie_details_recommendations">More Like This</string>
     <string name="movie_details_servers">Streaming Server</string>
     <string name="movie_player_switch_server">Switch Server</string>
+    <string name="movie_player_try_next_server">Try Next Server</string>
+    <string name="movie_player_auto_switching">Server failed. Trying next server…</string>
+    <string name="movie_player_all_failed">None of the streaming servers could play this title. Please try again later.</string>
     <string name="movie_player_loading">Loading player…</string>
     <string name="movie_player_error">Failed to load video player. Try switching to another server.</string>
     <string name="movie_search_placeholder">Search movies…</string>

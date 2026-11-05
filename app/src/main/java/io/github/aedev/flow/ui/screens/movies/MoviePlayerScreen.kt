@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -58,6 +61,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -132,12 +136,44 @@ fun MoviePlayerScreen(
         mutableStateOf(MovieServer.findById(initialServerId))
     }
 
+    val attemptedServers = remember { mutableStateListOf(currentServer.id) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
     var controlsVisible by remember { mutableStateOf(true) }
     var showServerSheet by remember { mutableStateOf(false) }
+
+    fun switchToNextServer(reason: String) {
+        // Find next server not yet attempted
+        val nextServer = MovieServer.SERVERS.firstOrNull { it.id !in attemptedServers }
+        if (nextServer == null) {
+            hasError = true
+            errorMessage = "All ${MovieServer.SERVERS.size} servers attempted. None were able to play this stream."
+            isLoading = false
+            return
+        }
+
+        attemptedServers.add(nextServer.id)
+        val oldServerName = currentServer.name
+        currentServer = nextServer
+        hasError = false
+        isLoading = true
+        statusMessage = "Server $oldServerName unavailable. Trying ${nextServer.name} (${attemptedServers.size}/${MovieServer.SERVERS.size})…"
+        webViewRef?.apply {
+            stopLoading()
+            loadUrl(nextServer.getUrl(movieId))
+        }
+    }
+
+    // 12-second timeout per server: if server hangs or spins without starting, failover to next server automatically
+    LaunchedEffect(currentServer) {
+        delay(12000L)
+        if (isLoading && !hasError) {
+            switchToNextServer("Timed out")
+        }
+    }
 
     // HTML5 custom fullscreen video view
     var customView by remember { mutableStateOf<View?>(null) }
@@ -201,11 +237,14 @@ fun MoviePlayerScreen(
             factory = { ctx ->
                 createSandboxedWebView(
                     context = ctx,
-                    onLoadingChanged = { loading -> isLoading = loading },
+                    onLoadingChanged = { loading ->
+                        isLoading = loading
+                        if (!loading) {
+                            statusMessage = null
+                        }
+                    },
                     onErrorOccurred = { error ->
-                        hasError = true
-                        errorMessage = error
-                        isLoading = false
+                        switchToNextServer(error)
                     },
                     onShowCustomView = { view, callback ->
                         customView = view
@@ -243,25 +282,41 @@ fun MoviePlayerScreen(
             )
         }
 
-        // Loading spinner
+        // Loading spinner with auto-failover status and manual skip button
         if (isLoading && !hasError) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f)),
+                    .background(Color.Black.copy(alpha = 0.65f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp),
+                ) {
                     CircularProgressIndicator(
                         color = MaterialTheme.colorScheme.primary,
                         strokeWidth = 3.dp,
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        text = stringResource(R.string.movie_player_loading),
+                        text = statusMessage ?: "Connecting to ${currentServer.name} (${attemptedServers.size}/${MovieServer.SERVERS.size})…",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White,
+                        fontWeight = FontWeight.Medium,
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = { switchToNextServer("Manual skip") },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FastForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.movie_player_try_next_server))
+                    }
                 }
             }
         }
@@ -279,7 +334,7 @@ fun MoviePlayerScreen(
                     modifier = Modifier.padding(24.dp),
                 ) {
                     Text(
-                        text = stringResource(R.string.movie_player_error),
+                        text = errorMessage ?: stringResource(R.string.movie_player_all_failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White,
                     )
@@ -287,9 +342,14 @@ fun MoviePlayerScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(
                             onClick = {
+                                attemptedServers.clear()
+                                val firstServer = MovieServer.SERVERS.first()
+                                attemptedServers.add(firstServer.id)
+                                currentServer = firstServer
                                 hasError = false
                                 isLoading = true
-                                webViewRef?.loadUrl(currentServer.getUrl(movieId))
+                                statusMessage = "Connecting to ${firstServer.name} (1/${MovieServer.SERVERS.size})…"
+                                webViewRef?.loadUrl(firstServer.getUrl(movieId))
                             },
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -404,10 +464,16 @@ fun MoviePlayerScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        attemptedServers.clear()
+                                        attemptedServers.add(server.id)
                                         currentServer = server
                                         hasError = false
                                         isLoading = true
-                                        webViewRef?.loadUrl(server.getUrl(movieId))
+                                        statusMessage = "Connecting to ${server.name}…"
+                                        webViewRef?.apply {
+                                            stopLoading()
+                                            loadUrl(server.getUrl(movieId))
+                                        }
                                         scope.launch {
                                             sheetState.hide()
                                             showServerSheet = false
@@ -519,6 +585,29 @@ private fun createSandboxedWebView(
                 onLoadingChanged(false)
             }
 
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?,
+            ) {
+                super.onReceivedError(view, request, error)
+                if (request?.isForMainFrame == true) {
+                    onErrorOccurred(error?.description?.toString() ?: "Main frame error")
+                }
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?,
+            ) {
+                super.onReceivedHttpError(view, request, errorResponse)
+                if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 200) >= 400) {
+                    onErrorOccurred("HTTP error ${errorResponse?.statusCode}")
+                }
+            }
+
+            @Suppress("DEPRECATION")
             override fun onReceivedError(
                 view: WebView?,
                 errorCode: Int,
