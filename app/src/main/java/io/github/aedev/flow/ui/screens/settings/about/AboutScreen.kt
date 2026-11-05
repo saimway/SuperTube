@@ -126,10 +126,10 @@ private fun AboutHeader() {
         verticalArrangement = Arrangement.spacedBy(HeaderSpacing),
     ) {
         Icon(
-            painter = painterResource(R.drawable.ic_notification_logo),
+            painter = painterResource(R.drawable.ic_supertube_logo),
             contentDescription = null,
             modifier = Modifier.size(LogoSize),
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = MaterialTheme.colorScheme.primary,
         )
         Text(
             text = stringResource(R.string.app_name),
@@ -160,7 +160,7 @@ private fun CreatorRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_notification_logo),
+                    painter = painterResource(R.drawable.ic_supertube_logo),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp),

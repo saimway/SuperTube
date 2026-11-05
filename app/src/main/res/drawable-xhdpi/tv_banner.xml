@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android TV launcher banner: the SuperTube red play badge + white play triangle from the
-     launcher icon, centered large on the launcher background color (no
-     wordmark). Badge stays inside the 5% overscan-safe area of the 320x180
-     canvas (x 90-230, y 37-143). -->
+<!-- Android TV launcher banner: SuperTube logo centered on dark background -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="160dp"
     android:height="90dp"
@@ -12,15 +9,12 @@
         android:fillColor="#0F0F0F"
         android:pathData="M0,0h320v180h-320z" />
     <group
-        android:scaleX="7"
-        android:scaleY="7"
-        android:translateX="76"
-        android:translateY="3.4">
+        android:scaleX="0.18"
+        android:scaleY="0.18"
+        android:translateX="95"
+        android:translateY="25">
         <path
             android:fillColor="#FF0000"
-            android:pathData="M21.58 7.16C21.33 6.22 20.59 5.48 19.65 5.23C17.96 4.77 12 4.77 12 4.77C12 4.77 6.04 4.77 4.35 5.23C3.41 5.48 2.67 6.22 2.42 7.16C1.96 8.85 1.96 12.38 1.96 12.38C1.96 12.38 1.96 15.91 2.42 17.6C2.67 18.54 3.41 19.28 4.35 19.53C6.04 19.99 12 19.99 12 19.99C12 19.99 17.96 19.99 19.65 19.53C20.59 19.28 21.33 18.54 21.58 17.6C22.04 15.91 22.04 12.38 22.04 12.38C22.04 12.38 22.04 8.85 21.58 7.16Z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M10 8.5L16 12L10 15.5Z" />
+            android:pathData="M449,157 H551 V258 H449 Z M347,157 A202,202 0 0,0 145,359 H246 A101,101 0 0,1 347,258 Z M145,461 H347 A102,102 0 0,1 449,359 H550 A203,203 0 0,0 347,562 H145 Z" />
     </group>
 </vector>

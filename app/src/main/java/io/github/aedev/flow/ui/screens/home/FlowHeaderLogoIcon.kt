@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.vector.PathParser
 // SVG path data — a single unbreakable token, so the line-length rule cannot be satisfied by wrapping.
 @Suppress("ktlint:standard:max-line-length")
 private const val SUPERTUBE_LOGO_PATH =
-    "M21.58,7.16C21.33,6.22 20.59,5.48 19.65,5.23C17.96,4.77 12,4.77 12,4.77s-5.96,0 -7.65,0.46c-0.94,0.25 -1.68,0.99 -1.93,1.93C1.96,8.85 1.96,12 1.96,12s0,3.15 0.46,4.84c0.25,0.94 0.99,1.68 1.93,1.93C6.04,19.23 12,19.23 12,19.23s5.96,0 7.65,-0.46c0.94,-0.25 1.68,-0.99 1.93,-1.93C22.04,15.15 22.04,12 22.04,12s0,-3.15 -0.46,-4.84z M10,15.5V8.5L16,12l-6,3.5z"
+    "M449,157 H551 V258 H449 Z M347,157 A202,202 0 0,0 145,359 H246 A101,101 0 0,1 347,258 Z M145,461 H347 A102,102 0 0,1 449,359 H550 A203,203 0 0,0 347,562 H145 Z"
 
 @Suppress("ktlint:standard:max-line-length")
 private const val FLOW_INCOGNITO_GLYPH_PATH =
@@ -39,9 +39,7 @@ internal fun FlowHeaderLogoIcon(
 
     val logoPath =
         remember {
-            PathParser().parsePathString(SUPERTUBE_LOGO_PATH).toPath().apply {
-                fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
-            }
+            PathParser().parsePathString(SUPERTUBE_LOGO_PATH).toPath()
         }
     val incognitoPath =
         remember {
@@ -61,8 +59,8 @@ internal fun FlowHeaderLogoIcon(
 
     Canvas(modifier = modifier) {
         if (logoAlpha > 0f) {
-            val sx = size.width / 24f
-            val sy = size.height / 24f
+            val sx = size.width / 720f
+            val sy = size.height / 720f
             drawContext.canvas.save()
             drawContext.canvas.scale(sx, sy)
             drawPath(path = logoPath, color = primaryColor.copy(alpha = logoAlpha))

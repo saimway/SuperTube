@@ -54,6 +54,12 @@ object AppIcons {
         ".IconFlowLight",
         ".IconFlowPlay",
         ".IconExpressiveSegmented",
+        ".IconExpressiveScallop",
+        ".IconExpressiveSky",
+        ".IconExpressiveMint",
+        ".IconExpressiveCookie",
+        ".IconExpressiveOval",
+        ".IconExpressivePill",
     )
 
     /** The launcher icons visible in the App Icon picker dialog. */
