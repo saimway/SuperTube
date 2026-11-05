@@ -43,7 +43,7 @@ class FlowTabTest {
             )
 
         assertEquals(
-            listOf(FlowTab.Library, FlowTab.Subscriptions, FlowTab.Music, FlowTab.Shorts, FlowTab.Home),
+            listOf(FlowTab.Library, FlowTab.Subscriptions, FlowTab.Music, FlowTab.Shorts, FlowTab.Home, FlowTab.Movies),
             tabs,
         )
     }
@@ -65,6 +65,7 @@ class FlowTabTest {
                 FlowTab.Library,
                 FlowTab.Search,
                 FlowTab.Explore,
+                FlowTab.Movies,
             ),
             tabs,
         )
@@ -130,7 +131,7 @@ class FlowTabTest {
         assertFalse(FlowTab.Downloads in visibleFlowTabs(DEFAULT_NAV_TAB_ORDER, NavigationVisibility()))
         assertEquals(
             FlowTab.Downloads,
-            visibleFlowTabs(listOf(3, 0), NavigationVisibility(downloads = true)).last(),
+            visibleFlowTabs(listOf(3, 0), NavigationVisibility(downloads = true, movies = false)).last(),
         )
     }
 }

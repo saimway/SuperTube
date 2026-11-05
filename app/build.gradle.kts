@@ -120,28 +120,50 @@ android {
         create("release") {
             val supertubeKeystore = rootDir.resolve("supertube.keystore")
             val releaseKeystore = rootDir.resolve("release.keystore")
-            storeFile = if (releaseKeystore.exists()) releaseKeystore else supertubeKeystore
-            storePassword = (project.findProperty("storePassword") as? String)
-                ?: localProperties.getProperty("storePassword")
-                ?: System.getenv("STORE_PASSWORD")
-                ?: "supertube"
-            keyAlias = (project.findProperty("keyAlias") as? String)
-                ?: localProperties.getProperty("keyAlias")
-                ?: System.getenv("KEY_ALIAS")
-                ?: "supertube"
-            keyPassword = (project.findProperty("keyPassword") as? String)
-                ?: localProperties.getProperty("keyPassword")
-                ?: System.getenv("KEY_PASSWORD")
-                ?: "supertube"
+            val useOfficialRelease = releaseKeystore.exists()
+            storeFile = if (useOfficialRelease) releaseKeystore else supertubeKeystore
+
+            val envStorePass = System.getenv("STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+            val envKeyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() }
+            val envKeyPass = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+
+            storePassword = (project.findProperty("storePassword") as? String)?.takeIf { it.isNotBlank() }
+                ?: localProperties.getProperty("storePassword")?.takeIf { it.isNotBlank() }
+                ?: envStorePass
+                ?: (if (useOfficialRelease) "" else "supertube")
+
+            keyAlias = (project.findProperty("keyAlias") as? String)?.takeIf { it.isNotBlank() }
+                ?: localProperties.getProperty("keyAlias")?.takeIf { it.isNotBlank() }
+                ?: envKeyAlias
+                ?: (if (useOfficialRelease) "" else "supertube")
+
+            keyPassword = (project.findProperty("keyPassword") as? String)?.takeIf { it.isNotBlank() }
+                ?: localProperties.getProperty("keyPassword")?.takeIf { it.isNotBlank() }
+                ?: envKeyPass
+                ?: (if (useOfficialRelease) "" else "supertube")
         }
         // One long-lived key for every nightly, so each build installs over the last one.
         create("nightly") {
             val supertubeKeystore = rootDir.resolve("supertube.keystore")
             val nightlyKeystore = rootDir.resolve("nightly.keystore")
-            storeFile = if (nightlyKeystore.exists()) nightlyKeystore else supertubeKeystore
-            storePassword = System.getenv("NIGHTLY_STORE_PASSWORD") ?: localProperties.getProperty("nightlyStorePassword") ?: "supertube"
-            keyAlias = System.getenv("NIGHTLY_KEY_ALIAS") ?: localProperties.getProperty("nightlyKeyAlias") ?: "supertube"
-            keyPassword = System.getenv("NIGHTLY_KEY_PASSWORD") ?: localProperties.getProperty("nightlyKeyPassword") ?: "supertube"
+            val useOfficialNightly = nightlyKeystore.exists()
+            storeFile = if (useOfficialNightly) nightlyKeystore else supertubeKeystore
+
+            val envNightlyStorePass = System.getenv("NIGHTLY_STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+            val envNightlyKeyAlias = System.getenv("NIGHTLY_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+            val envNightlyKeyPass = System.getenv("NIGHTLY_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+
+            storePassword = envNightlyStorePass
+                ?: localProperties.getProperty("nightlyStorePassword")?.takeIf { it.isNotBlank() }
+                ?: (if (useOfficialNightly) "" else "supertube")
+
+            keyAlias = envNightlyKeyAlias
+                ?: localProperties.getProperty("nightlyKeyAlias")?.takeIf { it.isNotBlank() }
+                ?: (if (useOfficialNightly) "" else "supertube")
+
+            keyPassword = envNightlyKeyPass
+                ?: localProperties.getProperty("nightlyKeyPassword")?.takeIf { it.isNotBlank() }
+                ?: (if (useOfficialNightly) "" else "supertube")
         }
     }
 
