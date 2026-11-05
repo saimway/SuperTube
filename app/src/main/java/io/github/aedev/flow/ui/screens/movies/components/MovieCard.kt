@@ -29,7 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import io.github.aedev.flow.data.movie.MovieItem
 
 private val CardPosterRatio = 2f / 3f
@@ -55,7 +58,10 @@ fun MovieCard(
         ) {
             if (movie.posterUrl != null) {
                 AsyncImage(
-                    model = movie.posterUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(movie.posterUrl)
+                        .crossfade(false)
+                        .build(),
                     contentDescription = movie.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),

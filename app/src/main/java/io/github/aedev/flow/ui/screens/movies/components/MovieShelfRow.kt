@@ -18,6 +18,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -42,6 +44,9 @@ fun MovieShelfRow(
         LazyListState()
     }
 
+    val currentShelf by rememberUpdatedState(shelf)
+    val currentLoadMore by rememberUpdatedState(onLoadMore)
+
     // High performance pagination trigger: snapshotFlow without recomposition churn
     LaunchedEffect(listState) {
         snapshotFlow {
@@ -51,9 +56,9 @@ fun MovieShelfRow(
             totalItems > 0 && lastVisibleItem >= totalItems - 2
         }
             .distinctUntilChanged()
-            .filter { it && shelf.hasMore && !shelf.isLoadingMore }
+            .filter { it && currentShelf.hasMore && !currentShelf.isLoadingMore }
             .collect {
-                onLoadMore()
+                currentLoadMore()
             }
     }
 

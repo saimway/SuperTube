@@ -49,9 +49,8 @@ import io.github.aedev.flow.ui.screens.settings.index.DestinationIndex
 
 private enum class AboutDialog { CHANGELOG, DEVICE, NOTICES }
 
-private const val GITHUB_URL = "https://github.com/saimway/SuperTube"
 private const val NEWPIPE_URL = "https://github.com/TeamNewPipe/NewPipeExtractor"
-private const val LICENSE_URL = "https://github.com/saimway/SuperTube/blob/main/License"
+private const val LICENSE_URL = "https://www.apache.org/licenses/LICENSE-2.0"
 
 private val LogoSize = 72.dp
 private val HeaderPadding = 24.dp
@@ -86,9 +85,7 @@ internal fun AboutScreen(
                 onClick = { onNavigate(SettingsTarget(SettingsDestination.REMOTE_GUIDE)) },
             )
         }
-        group(key = "about.contact", header = R.string.section_contact) {
-            nav(AboutIndex.github, iconRes = R.drawable.ic_github, showChevron = false, onClick = { open(GITHUB_URL) })
-        }
+
         group(key = "about.legal", header = R.string.section_legal) {
             nav(AboutIndex.license, icon = Icons.Outlined.Description, showChevron = false, onClick = { open(LICENSE_URL) })
             nav(AboutIndex.newPipe, icon = Icons.Outlined.Extension, showChevron = false, onClick = { open(NEWPIPE_URL) })

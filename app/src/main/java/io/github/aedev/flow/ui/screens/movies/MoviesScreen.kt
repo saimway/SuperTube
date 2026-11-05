@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -150,6 +151,8 @@ fun MoviesScreen(
                             // Netflix-like Shelves Feed
                             val listState = rememberLazyListState()
 
+                            val currentViewModel by rememberUpdatedState(viewModel)
+
                             // Strict on-demand loading: load next shelf only when user actually scrolls down
                             LaunchedEffect(listState) {
                                 snapshotFlow {
@@ -161,7 +164,7 @@ fun MoviesScreen(
                                     .distinctUntilChanged()
                                     .filter { it }
                                     .collect {
-                                        viewModel.loadNextShelfBatch()
+                                        currentViewModel.loadNextShelfBatch()
                                     }
                             }
 

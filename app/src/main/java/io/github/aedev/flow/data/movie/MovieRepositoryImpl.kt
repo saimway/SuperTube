@@ -58,7 +58,7 @@ class MovieRepositoryImpl @Inject constructor(
                 return@runCatching cached.value
             }
         }
-        val fetched = fetcher()
+        val fetched = withContext(Dispatchers.Default) { fetcher() }
         cache[cacheKey] = CacheEntry(fetched)
         fetched
     }
@@ -115,8 +115,10 @@ class MovieRepositoryImpl @Inject constructor(
         }
         val url = "$BASE_URL/search/movie?api_key=$API_KEY&query=$encodedQuery&page=$page"
         val responseText = fetchString(url)
-        val paged = json.decodeFromString<TmdbPagedResponse<TmdbMovieDto>>(responseText)
-        val items = paged.results.map { it.toMovieItem() }
+        val items = withContext(Dispatchers.Default) {
+            val paged = json.decodeFromString<TmdbPagedResponse<TmdbMovieDto>>(responseText)
+            paged.results.map { it.toMovieItem() }
+        }
         cache[cacheKey] = CacheEntry(items)
         items
     }
