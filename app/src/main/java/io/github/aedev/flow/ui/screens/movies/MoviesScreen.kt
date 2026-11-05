@@ -151,7 +151,7 @@ fun MoviesScreen(
                             val listState = rememberLazyListState()
 
                             // Strict on-demand loading: load next shelf only when user actually scrolls down
-                            LaunchedEffect(listState, state.shelves.size) {
+                            LaunchedEffect(listState) {
                                 snapshotFlow {
                                     val layoutInfo = listState.layoutInfo
                                     val total = layoutInfo.totalItemsCount

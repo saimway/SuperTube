@@ -1547,7 +1547,7 @@
     <string name="check_for_updates">Yeniləmələri yoxla</string>
     <string name="check_for_updates_subtitle">Ən son versiyanı yoxlamaq üçün toxunun</string>
     <string name="checking_for_updates">Yeniləmələr yoxlanılır…</string>
-    <string name="flow_is_up_to_date">Flow güncəldir!</string>
+    <string name="flow_is_up_to_date">SuperTube güncəldir!</string>
     <string name="update_check_failed">Yeniləmələri yoxlamaq mümkün olmadı. Bağlantınızı yoxlayın.</string>
     <string name="export_engine_data">Mühərrik profilini ixrac et</string>
     <string name="export_engine_data_subtitle">Süni intellekt şəxsiyyətinizin və öyrənmə məlumatlarınızın ehtiyat nüsxəsini yaradın</string>
@@ -2709,7 +2709,7 @@
     </plurals>
     <string name="support_flow_open_collective">Open Collective-də Flow-i dəstəkləyin</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_notices">Açıq mənbə bildirişləri</string>

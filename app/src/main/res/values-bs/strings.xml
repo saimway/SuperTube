@@ -1866,7 +1866,7 @@
     <string name="about_creator">Kreator</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">Website</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Izvorni kod i problemi</string>
@@ -2586,7 +2586,7 @@
     <string name="check_for_updates">Provjerite ima li ažuriranja</string>
     <string name="check_for_updates_subtitle">Dodirnite za provjeru najnovije verzije</string>
     <string name="checking_for_updates">Provjera ažuriranja…</string>
-    <string name="flow_is_up_to_date">Flow je ažuriran!</string>
+    <string name="flow_is_up_to_date">SuperTube je ažuriran!</string>
     <string name="update_check_failed">Nije moguće provjeriti ažuriranja. Provjerite svoju vezu.</string>
     <string name="export_engine_data">Izvezi profil motora</string>
     <string name="export_engine_data_subtitle">Napravite sigurnosnu kopiju vaše AI ličnosti i podataka o učenju</string>

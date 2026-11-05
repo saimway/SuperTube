@@ -43,7 +43,7 @@ fun MovieShelfRow(
     }
 
     // High performance pagination trigger: snapshotFlow without recomposition churn
-    LaunchedEffect(listState, shelf.hasMore, shelf.isLoadingMore) {
+    LaunchedEffect(listState) {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
             val totalItems = layoutInfo.totalItemsCount

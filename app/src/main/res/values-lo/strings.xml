@@ -1765,7 +1765,7 @@
     <string name="about_creator">ຜູ້ສ້າງ</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">ເວັບໄຊທ໌</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">ລະຫັດແຫຼ່ງ &amp; ບັນຫາ</string>
@@ -2463,7 +2463,7 @@
     <string name="check_for_updates">ກວດສອບການອັບເດດ</string>
     <string name="check_for_updates_subtitle">ແຕະເພື່ອກວດເບິ່ງເວີຊັນຫຼ້າສຸດ</string>
     <string name="checking_for_updates">ກຳລັງກວດສອບການອັບເດດ…</string>
-    <string name="flow_is_up_to_date">Flow ແມ່ນອັບເດດແລ້ວ!</string>
+    <string name="flow_is_up_to_date">SuperTube ແມ່ນອັບເດດແລ້ວ!</string>
     <string name="update_check_failed">ບໍ່ສາມາດກວດສອບການອັບເດດໄດ້. ກວດເບິ່ງການເຊື່ອມຕໍ່ຂອງທ່ານ.</string>
     <string name="export_engine_data">ສົ່ງອອກໂປຣໄຟລ໌ເຄື່ອງຈັກ</string>
     <string name="export_engine_data_subtitle">ສຳຮອງຂໍ້ມູນບຸກຄະລິກກະພາບ AI ແລະການຮຽນຮູ້ຂອງທ່ານ</string>

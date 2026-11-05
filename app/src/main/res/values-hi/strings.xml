@@ -1026,7 +1026,7 @@
     <string name="check_for_updates">अपडेट्स के लिए जाँचें</string>
     <string name="check_for_updates_subtitle">नया वर्शन चेक करने के लिए टैप करें</string>
     <string name="checking_for_updates">अपडेट की जाँच की जा रही है…</string>
-    <string name="flow_is_up_to_date">Flow अपडेटेड है!</string>
+    <string name="flow_is_up_to_date">SuperTube अपडेटेड है!</string>
     <string name="update_check_failed">अपडेट की जाँच नहीं की जा सकी। अपना कनेक्शन जाँचें।</string>
     <string name="export_engine_data">इंजन प्रोफ़ाइल निर्यात करें</string>
     <string name="export_engine_data_subtitle">अपने AI व्यक्तित्व और सीखने के डेटा का बैकअप लें</string>
@@ -2136,7 +2136,7 @@
     <string name="donation_prompt_later">शायद बाद में</string>
     <string name="donation_prompt_never">दोबारा मत दिखाना</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">प्रवाह-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_notices">ओपन सोर्स नोटिस</string>

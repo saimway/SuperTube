@@ -1812,7 +1812,7 @@
     <string name="about_creator">Inesnulfuṛ</string>
     <string name="about_creator_name">A-Edit</string>
     <string name="about_website">Asmel web</string>
-    <string name="about_website_address">tazzla-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Rẓemt</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Aneɣmas n ufus d tegnit</string>
@@ -2521,7 +2521,7 @@
     <string name="check_for_updates">Ssefqed ɣef usnulfuyen</string>
     <string name="check_for_updates_subtitle">Ṭṭef iman-ik akken ad tesfeqdeg taɣuṛi taneggarut.</string>
     <string name="checking_for_updates">Yettnadi ɣef usnulfuyen…</string>
-    <string name="flow_is_up_to_date">Flow yettraǧu!</string>
+    <string name="flow_is_up_to_date">SuperTube yettraǧu!</string>
     <string name="update_check_failed">Ur zmireɣ ara ad d-nεiwḍeḍ. Ttxil-d tlelli-inek.</string>
     <string name="export_engine_data">Asenfaṛ n yigenni n tmacint</string>
     <string name="export_engine_data_subtitle">Awi-d isefka-inek n AI d ulmad.</string>

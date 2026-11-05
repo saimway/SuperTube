@@ -1206,7 +1206,7 @@
     <string name="check_for_updates">Periksa Pembaruan</string>
     <string name="check_for_updates_subtitle">Ketuk untuk memeriksa versi terbaru</string>
     <string name="checking_for_updates">Memeriksa pembaruan…</string>
-    <string name="flow_is_up_to_date">Flow sudah terbaru!</string>
+    <string name="flow_is_up_to_date">SuperTube sudah terbaru!</string>
     <string name="update_check_failed">Tidak dapat memeriksa pembaruan. Periksa koneksi Anda.</string>
     <string name="export_engine_data">Ekspor Profil Mesin</string>
     <string name="export_engine_data_subtitle">Buat cadangan kepribadian AI &amp; data pembelajaran Anda</string>
@@ -1871,7 +1871,7 @@
     <string name="playback_speed_multiplier_precise">%1$.2f×</string>
     <string name="channel_metadata_unavailable">Informasi kanal tidak tersedia</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow.aedev.me</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

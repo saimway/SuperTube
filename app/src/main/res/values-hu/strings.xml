@@ -1811,7 +1811,7 @@
     <string name="about_creator">Teremtő</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">Weboldal</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Forráskód és problémák</string>
@@ -2520,7 +2520,7 @@
     <string name="check_for_updates">Ellenőrizze a frissítéseket</string>
     <string name="check_for_updates_subtitle">Érintse meg a legfrissebb verzió ellenőrzéséhez</string>
     <string name="checking_for_updates">Frissítések keresése…</string>
-    <string name="flow_is_up_to_date">Az Flow naprakész!</string>
+    <string name="flow_is_up_to_date">Az SuperTube naprakész!</string>
     <string name="update_check_failed">Nem sikerült ellenőrizni a frissítéseket. Ellenőrizze a kapcsolatot.</string>
     <string name="export_engine_data">Motorprofil exportálása</string>
     <string name="export_engine_data_subtitle">Készítsen biztonsági másolatot AI személyiségéről és tanulási adatairól</string>

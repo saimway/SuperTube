@@ -1811,7 +1811,7 @@
     <string name="about_creator">خالق</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">ویب سائٹ</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">سورس کوڈ اور مسائل</string>
@@ -2520,7 +2520,7 @@
     <string name="check_for_updates">اپ ڈیٹس کے لیے چیک کریں۔</string>
     <string name="check_for_updates_subtitle">تازہ ترین ورژن چیک کرنے کے لیے تھپتھپائیں۔</string>
     <string name="checking_for_updates">اپ ڈیٹس کی جانچ ہو رہی ہے…</string>
-    <string name="flow_is_up_to_date">Flow تازہ ترین ہے!</string>
+    <string name="flow_is_up_to_date">SuperTube تازہ ترین ہے!</string>
     <string name="update_check_failed">اپ ڈیٹس کو چیک نہیں کیا جا سکا۔ اپنا کنکشن چیک کریں۔</string>
     <string name="export_engine_data">ایکسپورٹ انجن پروفائل</string>
     <string name="export_engine_data_subtitle">اپنی AI شخصیت اور سیکھنے کے ڈیٹا کا بیک اپ لیں۔</string>

@@ -1094,7 +1094,7 @@
     <string name="sb_action_show_toast">Notification uniquement</string>
     <string name="sb_action_ignore">Ignorer</string>
     <string name="select_text">Sélectionner le texte</string>
-    <string name="flow_is_up_to_date">Flow est à jour !</string>
+    <string name="flow_is_up_to_date">SuperTube est à jour !</string>
     <string name="error_not_supported_hint">Ce format ou ce type de contenu ne peut pas être lu dans Flow.</string>
     <string name="proxy_settings_invalid_port">Entrez un port proxy valide compris entre 1 et 65535.</string>
     <string name="proxy_settings_saved">Paramètres de proxy enregistrés</string>
@@ -2211,7 +2211,7 @@
     <string name="fallback_your_saved_shorts">Vos shorts enregistrés</string>
     <string name="discord_presence_playing_fallback">Joué dans Flow</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow.aedev.me</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

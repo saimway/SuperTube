@@ -1197,7 +1197,7 @@
     <string name="remove_incomplete_downloads">Удалить незавершенные загрузки</string>
     <string name="cast_connected">Трансляция</string>
     <string name="cast_disconnected">Трансляция отключена</string>
-    <string name="flow_is_up_to_date">Установлена последняя версия Flow!</string>
+    <string name="flow_is_up_to_date">Установлена последняя версия SuperTube!</string>
     <string name="sync_collection_subscriptions">Подписки</string>
     <string name="sync_collection_settings">Настройки</string>
     <string name="sync_collection_recommendation_profile">Профиль рекомендаций</string>
@@ -1917,7 +1917,7 @@
     <string name="content_settings_hide_unplayable_subscriptions_title">Скрывать неподдерживаемые видео из подписок</string>
     <string name="content_settings_hide_unplayable_subscriptions_subtitle">Скрыть частные, удаленные и ограниченные видео, которые не воспроизводятся</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

@@ -1811,7 +1811,7 @@
     <string name="about_creator">නිර්මාතෘ</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">වෙබ් අඩවිය</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">මූලාශ්ර කේතය සහ ගැටළු</string>
@@ -2520,7 +2520,7 @@
     <string name="check_for_updates">යාවත්කාලීන සඳහා පරීක්ෂා කරන්න</string>
     <string name="check_for_updates_subtitle">නවතම අනුවාදය සඳහා පරීක්ෂා කිරීමට තට්ටු කරන්න</string>
     <string name="checking_for_updates">යාවත්කාලීන සඳහා පරීක්ෂා කරමින්…</string>
-    <string name="flow_is_up_to_date">Flow යාවත්කාලීනයි!</string>
+    <string name="flow_is_up_to_date">SuperTube යාවත්කාලීනයි!</string>
     <string name="update_check_failed">යාවත්කාලීන සඳහා පරීක්ෂා කළ නොහැකි විය. ඔබගේ සම්බන්ධතාවය පරීක්ෂා කරන්න.</string>
     <string name="export_engine_data">එන්ජින් පැතිකඩ අපනයනය කරන්න</string>
     <string name="export_engine_data_subtitle">ඔබගේ AI පෞරුෂය සහ ඉගෙනුම් දත්ත උපස්ථ කරන්න</string>

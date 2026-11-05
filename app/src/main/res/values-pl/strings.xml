@@ -1514,7 +1514,7 @@
     <string name="widget_no_recent">Filmy które obejrzałeś pojawią się tutaj</string>
     <string name="widget_recognize_label">Rozpoznaj muzykę</string>
     <string name="widget_recognize_description">Rozpoznaj muzykę w Twoim otoczeniu jednym dotknięciem</string>
-    <string name="flow_is_up_to_date">Flow jest aktualne!</string>
+    <string name="flow_is_up_to_date">SuperTube jest aktualne!</string>
     <string name="sync_continue">Kontynuuj</string>
     <string name="channel_and_more_template">%1$s i %2$d więcej</string>
     <string name="local_media_empty_title">Nie znaleziono %1$s</string>
@@ -1614,7 +1614,7 @@
     <string name="location_manual_hint">/storage/emulated/0/…</string>
     <string name="location_badge_active">Aktywny</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow.aedev.me</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_license_name">GNU GPL v3</string>
     <string name="section_device">Urządzenie</string>

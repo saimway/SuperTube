@@ -1257,7 +1257,7 @@
     <string name="subtitle_background_color">Hintergrundfarbe</string>
     <string name="check_for_updates">Nach Updates suchen</string>
     <string name="checking_for_updates">Suche nach Updates…</string>
-    <string name="flow_is_up_to_date">Flow ist auf dem neuesten Stand!</string>
+    <string name="flow_is_up_to_date">SuperTube ist auf dem neuesten Stand!</string>
     <string name="update_check_failed">Konnte nicht nach Updates suchen. Überprüfe deine Verbindung.</string>
     <string name="sync_devices_title">Synchronisiere Geräte</string>
     <string name="sync_notification_title">Geräte synchronisieren</string>
@@ -1442,7 +1442,7 @@
     <string name="donation_prompt_message">Flow ist kostenlos, Open Source und ohne Werbung oder Tracker entwickelt. Wenn die App sich einen Platz auf Ihrem Gerät verdient hat, denken Sie bitte darüber nach, die Entwicklung zu unterstützen – das trägt wirklich dazu bei, das Projekt am Leben zu erhalten.</string>
     <string name="about_creator">Entwickler</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow.aedev.me</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Quellcode &amp; Probleme</string>

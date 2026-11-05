@@ -78,7 +78,8 @@
         android:usesCleartextTraffic="true"
         android:resizeableActivity="true"
         android:requestLegacyExternalStorage="true"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        android:hardwareAccelerated="true">
 
         <!--
             Samsung keep-alive hints (same as NewPipe).

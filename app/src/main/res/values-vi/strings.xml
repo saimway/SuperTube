@@ -1205,7 +1205,7 @@
     <string name="about_creator">Tác giả</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">Trang web</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Mã nguồn &amp; báo lỗi</string>
@@ -1556,7 +1556,7 @@
     <string name="check_for_updates">Kiểm tra cập nhật</string>
     <string name="check_for_updates_subtitle">Chạm để kiểm tra bản mới</string>
     <string name="checking_for_updates">Đang kiểm tra cập nhật…</string>
-    <string name="flow_is_up_to_date">Flow đã là bản mới nhất!</string>
+    <string name="flow_is_up_to_date">SuperTube đã là bản mới nhất!</string>
     <string name="update_check_failed">Không thể kiểm tra cập nhật. Hãy kiểm tra kết nối mạng.</string>
     <string name="export_engine_data">Xuất hồ sơ Flow Engine</string>
     <string name="export_engine_data_subtitle">Sao lưu dữ liệu học hỏi và tính cách AI của bạn</string>

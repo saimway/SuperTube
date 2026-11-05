@@ -1811,7 +1811,7 @@
     <string name="about_creator">خالق</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">وب سایت</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">کد منبع و مسائل</string>
@@ -2520,7 +2520,7 @@
     <string name="check_for_updates">به روز رسانیها را بررسی کنید</string>
     <string name="check_for_updates_subtitle">برای بررسی آخرین نسخه، ضربه بزنید</string>
     <string name="checking_for_updates">در حال بررسی بهروزرسانیها…</string>
-    <string name="flow_is_up_to_date">Flow به روز است!</string>
+    <string name="flow_is_up_to_date">SuperTube به روز است!</string>
     <string name="update_check_failed">برای بهروزرسانی بررسی نشد. اتصال خود را بررسی کنید.</string>
     <string name="export_engine_data">مشخصات موتور صادراتی</string>
     <string name="export_engine_data_subtitle">از دادههای یادگیری و شخصیت هوش مصنوعی خود نسخه پشتیبان تهیه کنید</string>

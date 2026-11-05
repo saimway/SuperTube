@@ -1124,7 +1124,7 @@
     <string name="check_for_updates">Controlla aggiornamenti</string>
     <string name="check_for_updates_subtitle">Tocca per controllare l\'ultima versione disponibile</string>
     <string name="checking_for_updates">Controllo aggiornamenti in corso…</string>
-    <string name="flow_is_up_to_date">Flow è aggiornato!</string>
+    <string name="flow_is_up_to_date">SuperTube è aggiornato!</string>
     <string name="update_check_failed">Impossibile verificare gli aggiornamenti. Controlla la tua connessione.</string>
     <string name="export_engine_data">Esporta profilo dell\'algoritmo</string>
     <string name="export_engine_data_subtitle">Esegui il backup della tua personalità AI e dei dati di apprendimento</string>
@@ -1897,7 +1897,7 @@
     <string name="content_settings_hide_unplayable_subscriptions_title">Nascondi i video non riproducibili dalle Iscrizioni</string>
     <string name="content_settings_hide_unplayable_subscriptions_subtitle">Nascondi i video privati, rimossi e limitati che non riescono ad essere riprodotti</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow.aedev.me</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

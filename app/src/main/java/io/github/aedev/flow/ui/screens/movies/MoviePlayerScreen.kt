@@ -5,10 +5,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
-import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -19,10 +19,12 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,16 +42,30 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.rounded.CloseFullscreen
+import androidx.compose.material.icons.rounded.OpenInFull
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +85,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -78,6 +97,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import io.github.aedev.flow.R
 import io.github.aedev.flow.data.movie.MovieServer
 import kotlinx.coroutines.delay
@@ -124,13 +145,21 @@ private val BLOCKED_URL_PATTERNS = listOf(
 fun MoviePlayerScreen(
     movieId: Long,
     initialServerId: String?,
-    movieTitle: String? = null,
+    viewModel: MovieViewModel,
     onBack: () -> Unit,
+    onNavigateToDetail: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
     val scope = rememberCoroutineScope()
+
+    val detailState by viewModel.detailState.collectAsStateWithLifecycle()
+    val movieDetail = detailState.detail
+
+    LaunchedEffect(movieId) {
+        viewModel.loadMovieDetail(movieId)
+    }
 
     var currentServer by remember {
         mutableStateOf(MovieServer.findById(initialServerId))
@@ -138,20 +167,21 @@ fun MoviePlayerScreen(
 
     val attemptedServers = remember { mutableStateListOf(currentServer.id) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isStreamPlaying by remember { mutableStateOf(false) }
+    var isConnecting by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var controlsVisible by remember { mutableStateOf(true) }
     var showServerSheet by remember { mutableStateOf(false) }
+    var isFullscreen by remember { mutableStateOf(false) }
 
     fun switchToNextServer(reason: String) {
-        // Find next server not yet attempted
         val nextServer = MovieServer.SERVERS.firstOrNull { it.id !in attemptedServers }
         if (nextServer == null) {
             hasError = true
-            errorMessage = "All ${MovieServer.SERVERS.size} servers attempted. None were able to play this stream."
-            isLoading = false
+            errorMessage = "All ${MovieServer.SERVERS.size} servers attempted. None were able to stream this title."
+            isConnecting = false
             return
         }
 
@@ -159,39 +189,53 @@ fun MoviePlayerScreen(
         val oldServerName = currentServer.name
         currentServer = nextServer
         hasError = false
-        isLoading = true
-        statusMessage = "Server $oldServerName unavailable. Trying ${nextServer.name} (${attemptedServers.size}/${MovieServer.SERVERS.size})…"
-        webViewRef?.apply {
-            stopLoading()
-            loadUrl(nextServer.getUrl(movieId))
+        isStreamPlaying = false
+        isConnecting = true
+        statusMessage = "Server $oldServerName unavailable. Switching to ${nextServer.name} (${attemptedServers.size}/${MovieServer.SERVERS.size})…"
+
+        webViewRef?.post {
+            webViewRef?.apply {
+                stopLoading()
+                loadUrl(nextServer.getUrl(movieId))
+            }
         }
     }
 
-    // 12-second timeout per server: if server hangs or spins without starting, failover to next server automatically
+    // 14-second failover guard: if server hangs or freezes without streaming, switch to next server automatically
     LaunchedEffect(currentServer) {
-        delay(12000L)
-        if (isLoading && !hasError) {
-            switchToNextServer("Timed out")
+        delay(14000L)
+        if (!isStreamPlaying && !hasError) {
+            switchToNextServer("Server timed out")
         }
     }
 
-    // HTML5 custom fullscreen video view
-    var customView by remember { mutableStateOf<View?>(null) }
-    var customViewCallback by remember { mutableStateOf<WebChromeClient.CustomViewCallback?>(null) }
-
-    // Screen-on & Immersive full screen lifecycle
-    DisposableEffect(activity) {
+    // Screen-on & window management
+    DisposableEffect(activity, isFullscreen) {
         val window = activity?.window
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         val insetsController = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
-        insetsController?.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        insetsController?.hide(WindowInsetsCompat.Type.systemBars())
+
+        if (isFullscreen) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            insetsController?.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            insetsController?.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            insetsController?.show(WindowInsetsCompat.Type.systemBars())
+        }
 
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             insetsController?.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    // Teardown WebView safely on leave
+    DisposableEffect(Unit) {
+        onDispose {
             webViewRef?.apply {
                 stopLoading()
                 loadUrl("about:blank")
@@ -203,300 +247,763 @@ fun MoviePlayerScreen(
         }
     }
 
-    // Auto-hide controls after 4 seconds of inactivity
-    LaunchedEffect(controlsVisible) {
-        if (controlsVisible) {
+    // Controls auto-hide timer in fullscreen mode
+    LaunchedEffect(controlsVisible, isFullscreen) {
+        if (isFullscreen && controlsVisible) {
             delay(4000L)
             controlsVisible = false
         }
     }
 
-    // Handle back button: dismiss HTML5 custom fullscreen if active, else normal back
+    // Handle back button: exit fullscreen first if active, otherwise normal back
     BackHandler {
-        if (customView != null) {
-            customViewCallback?.onCustomViewHidden()
-            customView = null
-            customViewCallback = null
+        if (isFullscreen) {
+            isFullscreen = false
         } else {
             onBack()
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() },
-                onClick = { controlsVisible = !controlsVisible },
-            ),
-    ) {
-        // Sandboxed WebView player
-        AndroidView(
-            factory = { ctx ->
-                createSandboxedWebView(
-                    context = ctx,
-                    onLoadingChanged = { loading ->
-                        isLoading = loading
-                        if (!loading) {
-                            statusMessage = null
-                        }
-                    },
-                    onErrorOccurred = { error ->
-                        switchToNextServer(error)
-                    },
-                    onShowCustomView = { view, callback ->
-                        customView = view
-                        customViewCallback = callback
-                    },
-                    onHideCustomView = {
-                        customView = null
-                        customViewCallback = null
-                    },
-                ).also { wv ->
-                    webViewRef = wv
-                    wv.loadUrl(currentServer.getUrl(movieId))
-                }
-            },
-            update = { wv ->
-                // Keep reference updated
-                webViewRef = wv
-            },
-            modifier = Modifier.fillMaxSize(),
-        )
+    val movieTitle = movieDetail?.title ?: stringResource(R.string.nav_movies)
+    val backdropUrl = movieDetail?.backdropUrl ?: movieDetail?.posterUrl
 
-        // Custom HTML5 Fullscreen View container if video enters HTML5 fullscreen
-        if (customView != null) {
+    if (isFullscreen) {
+        // -------------------------------------------------------------
+        // FULLSCREEN LANDSCAPE MODE
+        // -------------------------------------------------------------
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = { controlsVisible = !controlsVisible },
+                ),
+        ) {
+            // Sandboxed WebView
             AndroidView(
-                factory = { _ ->
-                    FrameLayout(context).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                        )
-                        addView(customView)
+                factory = { ctx ->
+                    createSandboxedWebView(
+                        context = ctx,
+                        onPlaybackStarted = {
+                            isStreamPlaying = true
+                            isConnecting = false
+                        },
+                        onPageLoaded = {
+                            // Give embed 2.5s to start playing, then smoothly reveal
+                            scope.launch {
+                                delay(2500L)
+                                if (!hasError) {
+                                    isStreamPlaying = true
+                                    isConnecting = false
+                                }
+                            }
+                        },
+                        onErrorOccurred = { error ->
+                            switchToNextServer(error)
+                        },
+                    ).also { wv ->
+                        webViewRef = wv
+                        wv.loadUrl(currentServer.getUrl(movieId))
                     }
                 },
+                update = {},
                 modifier = Modifier.fillMaxSize(),
             )
-        }
 
-        // Loading spinner with auto-failover status and manual skip button
-        if (isLoading && !hasError) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f)),
-                contentAlignment = Alignment.Center,
+            // Connecting / Thumbnail Overlay (stays smoothly visible until stream plays)
+            AnimatedVisibility(
+                visible = !isStreamPlaying && !hasError,
+                enter = fadeIn(),
+                exit = fadeOut(animationSpec = tween(500)),
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp),
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 3.dp,
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = statusMessage ?: "Connecting to ${currentServer.name} (${attemptedServers.size}/${MovieServer.SERVERS.size})…",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = { switchToNextServer("Manual skip") },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FastForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (backdropUrl != null) {
+                        AsyncImage(
+                            model = backdropUrl,
+                            contentDescription = movieTitle,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.movie_player_try_next_server))
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.65f)),
+                    )
+
+                    // Connecting Card
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(28.dp),
+                            )
+                            Column {
+                                Text(
+                                    text = currentServer.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = statusMessage ?: "Connecting to stream… (${attemptedServers.size}/${MovieServer.SERVERS.size})",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        // Error banner / retry
-        if (hasError) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.85f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp),
+            // Error Overlay
+            if (hasError) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.85f)),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = errorMessage ?: stringResource(R.string.movie_player_all_failed),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(
-                            onClick = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp),
+                    ) {
+                        Text(
+                            text = errorMessage ?: stringResource(R.string.movie_player_all_failed),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(onClick = {
                                 attemptedServers.clear()
                                 val firstServer = MovieServer.SERVERS.first()
                                 attemptedServers.add(firstServer.id)
                                 currentServer = firstServer
                                 hasError = false
-                                isLoading = true
+                                isStreamPlaying = false
+                                isConnecting = true
                                 statusMessage = "Connecting to ${firstServer.name} (1/${MovieServer.SERVERS.size})…"
                                 webViewRef?.loadUrl(firstServer.getUrl(movieId))
-                            },
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.movie_retry))
+                            }) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.movie_retry))
+                            }
+                            Button(onClick = { showServerSheet = true }) {
+                                Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.movie_player_switch_server))
+                            }
                         }
-                        Button(onClick = { showServerSheet = true }) {
-                            Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+
+            // Fullscreen Playback Controls Overlay
+            AnimatedVisibility(
+                visible = controlsVisible,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f)),
+                ) {
+                    // Top Bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = { isFullscreen = false }) {
+                            Icon(
+                                imageVector = Icons.Rounded.CloseFullscreen,
+                                contentDescription = stringResource(R.string.back),
+                                tint = Color.White,
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = movieTitle,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Next Server Quick Button
+                        OutlinedButton(
+                            onClick = { switchToNextServer("User next") },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        ) {
+                            Icon(Icons.Default.FastForward, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.movie_player_switch_server))
+                            Text(stringResource(R.string.movie_player_try_next_server))
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Server Switch Button
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = Color.White.copy(alpha = 0.2f),
+                            modifier = Modifier.clickable { showServerSheet = true },
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            ) {
+                                Icon(Icons.Default.Dns, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = currentServer.name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    } else {
+        // -------------------------------------------------------------
+        // PORTRAIT RABBITMEOW-STYLE MODE
+        // -------------------------------------------------------------
+        val scrollState = rememberScrollState()
+        val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-        // Player Controls Overlay
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize(),
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
         ) {
-            Box(
+            // Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = statusBarPadding + 4.dp, bottom = 4.dp, start = 8.dp, end = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                Text(
+                    text = movieTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Scrollable Content
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.45f)),
+                    .verticalScroll(scrollState),
             ) {
-                // Top control bar
-                val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                // 16:9 Rounded Player Container
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.Black),
+                ) {
+                    // Sandboxed WebView
+                    AndroidView(
+                        factory = { ctx ->
+                            createSandboxedWebView(
+                                context = ctx,
+                                onPlaybackStarted = {
+                                    isStreamPlaying = true
+                                    isConnecting = false
+                                },
+                                onPageLoaded = {
+                                    scope.launch {
+                                        delay(2500L)
+                                        if (!hasError) {
+                                            isStreamPlaying = true
+                                            isConnecting = false
+                                        }
+                                    }
+                                },
+                                onErrorOccurred = { error ->
+                                    switchToNextServer(error)
+                                },
+                            ).also { wv ->
+                                webViewRef = wv
+                                wv.loadUrl(currentServer.getUrl(movieId))
+                            }
+                        },
+                        update = {},
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    // RabbitMeow-style Backdrop & Connecting Overlay (stays until stream plays)
+                    AnimatedVisibility(
+                        visible = !isStreamPlaying && !hasError,
+                        enter = fadeIn(),
+                        exit = fadeOut(animationSpec = tween(500)),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            if (backdropUrl != null) {
+                                AsyncImage(
+                                    model = backdropUrl,
+                                    contentDescription = movieTitle,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.65f)),
+                            )
+
+                            // Status on right side matching RabbitMeow layout
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .padding(end = 20.dp),
+                                horizontalAlignment = Alignment.End,
+                            ) {
+                                Text(
+                                    text = currentServer.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                                Text(
+                                    text = currentServer.badge,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.75f),
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Text(
+                                        text = statusMessage ?: "Connecting…",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(12.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Fullscreen Expand Button (bottom right of player)
+                    IconButton(
+                        onClick = { isFullscreen = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.55f),
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.OpenInFull,
+                                    contentDescription = stringResource(R.string.fullscreen),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // Error overlay in card
+                    if (hasError) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.85f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(16.dp),
+                            ) {
+                                Text(
+                                    text = errorMessage ?: stringResource(R.string.movie_player_all_failed),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White,
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = {
+                                        attemptedServers.clear()
+                                        val firstServer = MovieServer.SERVERS.first()
+                                        attemptedServers.add(firstServer.id)
+                                        currentServer = firstServer
+                                        hasError = false
+                                        isStreamPlaying = false
+                                        isConnecting = true
+                                        statusMessage = "Connecting to ${firstServer.name} (1/${MovieServer.SERVERS.size})…"
+                                        webViewRef?.loadUrl(firstServer.getUrl(movieId))
+                                    },
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(stringResource(R.string.movie_retry), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Action Buttons Row (AutoNext, Details, Shuffle) matching RabbitMeow
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = statusBarPadding + 8.dp, start = 8.dp, end = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = Color.White,
-                        )
+                    FilledTonalButton(
+                        onClick = { switchToNextServer("AutoNext") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Icon(Icons.Rounded.SkipNext, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("AutoNext", style = MaterialTheme.typography.labelMedium)
                     }
 
-                    Text(
-                        text = movieTitle ?: stringResource(R.string.nav_movies),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    FilledTonalButton(
+                        onClick = { onNavigateToDetail(movieId) },
                         modifier = Modifier.weight(1f),
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Server switch button
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = Color.White.copy(alpha = 0.2f),
-                        modifier = Modifier.clickable {
-                            showServerSheet = true
-                        },
+                        shape = RoundedCornerShape(10.dp),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Details", style = MaterialTheme.typography.labelMedium)
+                    }
+
+                    Button(
+                        onClick = {
+                            val recommendations = movieDetail?.recommendations ?: emptyList()
+                            val nextMovie = recommendations.randomOrNull()
+                            if (nextMovie != null) {
+                                onNavigateToDetail(nextMovie.id)
+                            } else {
+                                switchToNextServer("Shuffle")
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Icon(Icons.Rounded.Shuffle, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Shuffle", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+
+                // Server Selector Card (matching RabbitMeow)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "If the stream does not load or subtitles do not work, choose a different server",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Large Server Selection Pill Button
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showServerSheet = true },
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Dns,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = currentServer.name,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White,
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Dns,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = currentServer.name,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                    Text(
+                                        text = currentServer.badge,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
                         }
                     }
                 }
-            }
-        }
 
-        // Server Switcher Bottom Sheet
-        if (showServerSheet) {
-            val sheetState = rememberModalBottomSheetState()
-            ModalBottomSheet(
-                onDismissRequest = { showServerSheet = false },
-                sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 32.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.movie_player_switch_server),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                    )
+                // Movie Details Overview
+                if (movieDetail != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            if (movieDetail.voteAverage > 0) {
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                        Text(
+                                            text = movieDetail.ratingFormatted,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                }
+                            }
 
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(MovieServer.SERVERS, key = { it.id }) { server ->
-                            val isSelected = server.id == currentServer.id
+                            if (movieDetail.releaseYear.isNotBlank()) {
+                                Text(
+                                    text = movieDetail.releaseYear,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+
+                            if (movieDetail.runtimeFormatted.isNotBlank()) {
+                                Text(
+                                    text = movieDetail.runtimeFormatted,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        if (movieDetail.genres.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(10.dp))
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        attemptedServers.clear()
-                                        attemptedServers.add(server.id)
-                                        currentServer = server
-                                        hasError = false
-                                        isLoading = true
-                                        statusMessage = "Connecting to ${server.name}…"
-                                        webViewRef?.apply {
-                                            stopLoading()
-                                            loadUrl(server.getUrl(movieId))
-                                        }
-                                        scope.launch {
-                                            sheetState.hide()
-                                            showServerSheet = false
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                movieDetail.genres.forEach { genre ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    ) {
+                                        Text(
+                                            text = genre.name,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (movieDetail.overview.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = movieDetail.overview,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.25f,
+                            )
+                        }
+
+                        // Cast Row
+                        if (movieDetail.cast.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = stringResource(R.string.movie_cast),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                items(movieDetail.cast.take(10), key = { it.id }) { actor ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceContainer,
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        ) {
+                                            Text(
+                                                text = actor.name,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            if (actor.character.isNotBlank()) {
+                                                Text(
+                                                    text = actor.character,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
                                         }
                                     }
-                                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(36.dp))
+            }
+        }
+    }
+
+    // Server Switcher Bottom Sheet
+    if (showServerSheet) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = { showServerSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.movie_player_switch_server),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                )
+
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(MovieServer.SERVERS, key = { it.id }) { server ->
+                        val isSelected = server.id == currentServer.id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    attemptedServers.clear()
+                                    attemptedServers.add(server.id)
+                                    currentServer = server
+                                    hasError = false
+                                    isStreamPlaying = false
+                                    isConnecting = true
+                                    statusMessage = "Connecting to ${server.name}…"
+                                    webViewRef?.apply {
+                                        stopLoading()
+                                        loadUrl(server.getUrl(movieId))
+                                    }
+                                    scope.launch {
+                                        sheetState.hide()
+                                        showServerSheet = false
+                                    }
+                                }
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = server.name,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f),
                                 )
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
+                                Text(
+                                    text = server.badge,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp),
+                                )
                             }
                         }
                     }
@@ -506,20 +1013,25 @@ fun MoviePlayerScreen(
     }
 }
 
+/**
+ * Creates sandboxed WebView with hardware-accelerated Direct Rendering (no LAYER_TYPE_HARDWARE offscreen layer),
+ * zero frame jitter, and ad-blocking sandbox.
+ */
 @SuppressLint("SetJavaScriptEnabled")
 private fun createSandboxedWebView(
     context: Context,
-    onLoadingChanged: (Boolean) -> Unit,
+    onPlaybackStarted: () -> Unit,
+    onPageLoaded: () -> Unit,
     onErrorOccurred: (String) -> Unit,
-    onShowCustomView: (View, WebChromeClient.CustomViewCallback) -> Unit,
-    onHideCustomView: () -> Unit,
 ): WebView {
     return WebView(context).apply {
         layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
         )
-        setLayerType(View.LAYER_TYPE_HARDWARE, null)
+
+        // CRITICAL: LAYER_TYPE_NONE allows Chromium's GPU compositor to render video directly to surface without jitter/shattering
+        setLayerType(View.LAYER_TYPE_NONE, null)
 
         settings.apply {
             javaScriptEnabled = true
@@ -528,14 +1040,28 @@ private fun createSandboxedWebView(
             databaseEnabled = true
             useWideViewPort = true
             loadWithOverviewMode = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 
-            // Sandbox security: disable window popups and intent abuse
+            // Sandbox security: disable window popups and malicious intent injection
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
             allowFileAccess = false
             allowContentAccess = false
             cacheMode = WebSettings.LOAD_DEFAULT
         }
+
+        // Bridge to catch iframe video play events
+        addJavascriptInterface(
+            object {
+                @JavascriptInterface
+                fun onStreamPlaying() {
+                    post {
+                        onPlaybackStarted()
+                    }
+                }
+            },
+            "SuperTubeBridge",
+        )
 
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -575,14 +1101,36 @@ private fun createSandboxedWebView(
                 return super.shouldInterceptRequest(view, request)
             }
 
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                super.onPageStarted(view, url, favicon)
-                onLoadingChanged(true)
-            }
-
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                onLoadingChanged(false)
+                onPageLoaded()
+
+                // Inject player event listener to detect when HTML5 video actually plays
+                val js = """
+                    (function() {
+                        window.addEventListener('message', function(e) {
+                            try {
+                                var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                                if (data && (data.event === 'play' || data.event === 'playing' || data.event === 'timeupdate' || data.type === 'PLAYER_PLAYING')) {
+                                    window.SuperTubeBridge && window.SuperTubeBridge.onStreamPlaying();
+                                }
+                            } catch(err) {}
+                        });
+                        var checkVideo = function() {
+                            var v = document.querySelector('video');
+                            if (v) {
+                                v.addEventListener('playing', function() {
+                                    window.SuperTubeBridge && window.SuperTubeBridge.onStreamPlaying();
+                                });
+                                if (!v.paused && v.currentTime > 0) {
+                                    window.SuperTubeBridge && window.SuperTubeBridge.onStreamPlaying();
+                                }
+                            }
+                        };
+                        setInterval(checkVideo, 1000);
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(js, null)
             }
 
             override fun onReceivedError(
@@ -619,16 +1167,6 @@ private fun createSandboxedWebView(
             }
         }
 
-        webChromeClient = object : WebChromeClient() {
-            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
-                if (view != null && callback != null) {
-                    onShowCustomView(view, callback)
-                }
-            }
-
-            override fun onHideCustomView() {
-                onHideCustomView()
-            }
-        }
+        webChromeClient = WebChromeClient()
     }
 }

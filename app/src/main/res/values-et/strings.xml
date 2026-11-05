@@ -1835,7 +1835,7 @@
     <string name="about_creator">Looja</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">Veebisait</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Lähtekood ja probleemid</string>
@@ -2537,7 +2537,7 @@
     <string name="check_for_updates">Kontrollige värskendusi</string>
     <string name="check_for_updates_subtitle">Puudutage uusima versiooni kontrollimiseks</string>
     <string name="checking_for_updates">Värskenduste otsimine…</string>
-    <string name="flow_is_up_to_date">Flow on ajakohane!</string>
+    <string name="flow_is_up_to_date">SuperTube on ajakohane!</string>
     <string name="update_check_failed">Värskendusi ei saanud otsida. Kontrollige ühendust.</string>
     <string name="export_engine_data">Ekspordi mootori profiil</string>
     <string name="export_engine_data_subtitle">Varundage oma tehisintellekti isiksuse ja õppeandmed</string>

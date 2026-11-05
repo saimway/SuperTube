@@ -1546,7 +1546,7 @@
     <string name="check_for_updates">检查更新</string>
     <string name="check_for_updates_subtitle">点击查看最新版本</string>
     <string name="checking_for_updates">正在检查更新...</string>
-    <string name="flow_is_up_to_date">Flow 已更新！</string>
+    <string name="flow_is_up_to_date">SuperTube 已更新！</string>
     <string name="update_check_failed">无法检查更新。检查您的连接。</string>
     <string name="export_engine_data">导出引擎画像</string>
     <string name="export_engine_data_subtitle">备份您的 AI 个性和学习数据</string>
@@ -2524,7 +2524,7 @@
     </plurals>
     <string name="support_flow_open_collective">在 Open Collective 上支持 Flow</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_notices">开源声明</string>
     <string name="about_notices_summary">来自其他项目的单词列表和代码</string>

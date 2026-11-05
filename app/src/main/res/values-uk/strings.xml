@@ -1193,7 +1193,7 @@
     <string name="check_for_updates">Перевірити оновлення</string>
     <string name="check_for_updates_subtitle">Натисніть для перевірки оновлень</string>
     <string name="checking_for_updates">Перевірка оновлень…</string>
-    <string name="flow_is_up_to_date">Flow оновлено!</string>
+    <string name="flow_is_up_to_date">SuperTube оновлено!</string>
     <string name="update_check_failed">Не вдалося перевірити оновлення. Перевірте з’єднання.</string>
     <string name="export_engine_data">Експортувати профіль рушія</string>
     <string name="export_engine_data_subtitle">Резервна копія особистості та даних навчання ШІ</string>
@@ -1982,7 +1982,7 @@
     <string name="ui_in_library">В бібліотеці</string>
     <string name="ui_flow_logo">Логотип Flow</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

@@ -1811,7 +1811,7 @@
     <string name="about_creator">படைப்பாளி</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">இணையதளம்</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">ரெடிட்</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">மூல குறியீடு &amp; சிக்கல்கள்</string>
@@ -2520,7 +2520,7 @@
     <string name="check_for_updates">புதுப்பிப்புகளைச் சரிபார்க்கவும்</string>
     <string name="check_for_updates_subtitle">சமீபத்திய பதிப்பைச் சரிபார்க்க தட்டவும்</string>
     <string name="checking_for_updates">புதுப்பிப்புகளைச் சரிபார்க்கிறது…</string>
-    <string name="flow_is_up_to_date">Flow புதுப்பித்த நிலையில் உள்ளது!</string>
+    <string name="flow_is_up_to_date">SuperTube புதுப்பித்த நிலையில் உள்ளது!</string>
     <string name="update_check_failed">புதுப்பிப்புகளைச் சரிபார்க்க முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்க்கவும்.</string>
     <string name="export_engine_data">ஏற்றுமதி என்ஜின் சுயவிவரம்</string>
     <string name="export_engine_data_subtitle">உங்கள் AI ஆளுமை மற்றும் கற்றல் தரவை காப்புப் பிரதி எடுக்கவும்</string>

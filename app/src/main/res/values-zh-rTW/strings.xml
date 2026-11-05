@@ -1974,7 +1974,7 @@
     <string name="about_creator">開發者</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">網站</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">原始碼與問題回報</string>
@@ -2574,7 +2574,7 @@
     <string name="subtitle_edge_color">邊緣顏色</string>
     <string name="subtitle_custom_color">自訂顏色</string>
     <string name="subtitle_reset_default">重設為預設值</string>
-    <string name="flow_is_up_to_date">Flow 已是最新版本！</string>
+    <string name="flow_is_up_to_date">SuperTube 已是最新版本！</string>
     <string name="export_engine_data">匯出引擎設定檔</string>
     <string name="export_engine_success">已成功匯出引擎設定檔</string>
     <string name="export_engine_failed">無法匯出引擎設定檔</string>

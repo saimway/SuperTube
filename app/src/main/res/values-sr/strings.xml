@@ -1859,7 +1859,7 @@
     <string name="about_creator">Креатор</string>
     <string name="about_creator_name">А-ЕДев</string>
     <string name="about_website">Вебсите</string>
-    <string name="about_website_address">флов-тубе.орг</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Реддит</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Изворни код и проблеми</string>
@@ -2579,7 +2579,7 @@
     <string name="check_for_updates">Проверите ажурирања</string>
     <string name="check_for_updates_subtitle">Додирните да бисте проверили да ли имате најновију верзију</string>
     <string name="checking_for_updates">Проверавам ажурирања…</string>
-    <string name="flow_is_up_to_date">Flow је ажуриран!</string>
+    <string name="flow_is_up_to_date">SuperTube је ажуриран!</string>
     <string name="update_check_failed">Провера ажурирања није успела. Проверите своју везу.</string>
     <string name="export_engine_data">Извези профил мотора</string>
     <string name="export_engine_data_subtitle">Направите резервну копију ваше АИ личности и података о учењу</string>

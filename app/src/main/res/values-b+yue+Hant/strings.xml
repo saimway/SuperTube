@@ -1765,7 +1765,7 @@
     <string name="about_creator">創造者</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">網站</string>
-    <string name="about_website_address">流管 . org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">源碼同問題</string>
@@ -2463,7 +2463,7 @@
     <string name="check_for_updates">睇下有冇更新</string>
     <string name="check_for_updates_subtitle">㩒一下就可以檢查最新版本</string>
     <string name="checking_for_updates">檢查緊更新 …</string>
-    <string name="flow_is_up_to_date">Flow 係最新嘅！</string>
+    <string name="flow_is_up_to_date">SuperTube 係最新嘅！</string>
     <string name="update_check_failed">檢查唔到更新。檢查你嘅連線。</string>
     <string name="export_engine_data">匯出引擎設定檔</string>
     <string name="export_engine_data_subtitle">備份你嘅 AI 個性同學習資料</string>

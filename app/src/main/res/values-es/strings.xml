@@ -1154,7 +1154,7 @@
     <string name="cast_disconnected">Reparto desconectado</string>
     <string name="check_for_updates_subtitle">Toque para buscar la última versión</string>
     <string name="checking_for_updates">Buscando actualizaciones…</string>
-    <string name="flow_is_up_to_date">¡Flow está actualizado!</string>
+    <string name="flow_is_up_to_date">¡SuperTube está actualizado!</string>
     <string name="export_engine_data">Perfil del motor de exportación</string>
     <string name="export_engine_data_subtitle">Haga una copia de seguridad de sus datos de aprendizaje y personalidad de IA</string>
     <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba tu conexión.</string>
@@ -2064,7 +2064,7 @@
     <string name="download_sabr_failed">Error en la descarga SABR</string>
     <string name="download_sabr_failed_try_again">Error en la descarga SABR. Inténtalo de nuevo.</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

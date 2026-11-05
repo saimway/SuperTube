@@ -1903,7 +1903,7 @@
     <string name="about_creator">Tvůrce</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">webové stránky</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Zdrojový kód a problémy</string>
@@ -2634,7 +2634,7 @@
     <string name="check_for_updates">Zkontrolujte aktualizace</string>
     <string name="check_for_updates_subtitle">Klepnutím zkontrolujte nejnovější verzi</string>
     <string name="checking_for_updates">Kontrola aktualizací…</string>
-    <string name="flow_is_up_to_date">Flow je aktuální!</string>
+    <string name="flow_is_up_to_date">SuperTube je aktuální!</string>
     <string name="update_check_failed">Aktualizace se nepodařilo zkontrolovat. Zkontrolujte připojení.</string>
     <string name="export_engine_data">Export profilu motoru</string>
     <string name="export_engine_data_subtitle">Zálohujte svou osobnost AI a data učení</string>

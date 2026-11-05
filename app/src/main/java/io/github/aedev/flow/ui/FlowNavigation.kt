@@ -342,12 +342,15 @@ fun NavGraphBuilder.flowAppGraph(
         ),
     ) { backStackEntry ->
         currentRoute.value = "moviePlayer"
+        val movieViewModel = sharedMovieViewModel()
         val movieId = backStackEntry.arguments?.getLong("id") ?: 0L
         val serverId = backStackEntry.arguments?.getString("server")
         MoviePlayerScreen(
             movieId = movieId,
             initialServerId = serverId,
+            viewModel = movieViewModel,
             onBack = { navController.popBackStack() },
+            onNavigateToDetail = { id -> navController.navigate("movie/$id") },
         )
     }
 

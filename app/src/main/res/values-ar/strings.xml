@@ -905,7 +905,7 @@
     <string name="check_for_updates">التحقق من وجود تحديثات</string>
     <string name="check_for_updates_subtitle">انقر للتحقق من أحدث إصدار</string>
     <string name="checking_for_updates">جارٍ التحقق من وجود تحديثات…</string>
-    <string name="flow_is_up_to_date">Flow محدث لأخر إصدار!</string>
+    <string name="flow_is_up_to_date">SuperTube محدث لأخر إصدار!</string>
     <string name="update_check_failed">تعذر التحقق من وجود تحديثات. يرجى التحقق من اتصالك بالإنترنت.</string>
     <string name="export_engine_data">تصدير ملف تعريف المحرك</string>
     <string name="export_engine_data_subtitle">قم بعمل نسخة احتياطية من بيانات شخصية الذكاء الاصطناعي وبيانات التعلم الخاصة بك</string>
@@ -2121,7 +2121,7 @@
     <string name="discord_presence_gateway_warning">يستخدم هذا تسجيل الدخول عبر رمز Discord الخاص بك بدلًا من تسجيل الدخول الرسمي. هذا يخالف شروط خدمة Discord وقد يؤدي إلى تقييد حسابك أو حظره.</string>
     <string name="discord_presence_risk_dialog_title">هل تقبل مخاطر استخدام حساب Discord؟</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_license_name">GNU GPL v3</string>

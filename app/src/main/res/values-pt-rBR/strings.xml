@@ -1239,7 +1239,7 @@
     <string name="about_creator">Criador</string>
     <string name="about_creator_name">A-EDev</string>
     <string name="about_website">Site</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="github_subtitle">Código-fonte &amp; problemas</string>
@@ -1583,7 +1583,7 @@
     <string name="check_for_updates">Verificar atualizações</string>
     <string name="check_for_updates_subtitle">Toque para verificar a versão mais recente</string>
     <string name="checking_for_updates">Verificando atualizações…</string>
-    <string name="flow_is_up_to_date">Flow está atualizado!</string>
+    <string name="flow_is_up_to_date">SuperTube está atualizado!</string>
     <string name="update_check_failed">Não foi possível verificar as atualizações. Verifica sua conexão.</string>
     <string name="export_engine_data">Exportar perfil do motor</string>
     <string name="export_engine_data_subtitle">Faça cópia de seus dados de aprendizado &amp; IA personalida</string>

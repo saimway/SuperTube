@@ -1331,7 +1331,7 @@
     <string name="check_for_updates">Güncellemeleri Denetle</string>
     <string name="check_for_updates_subtitle">En son sürümü denetlemek için dokun</string>
     <string name="checking_for_updates">Güncellemeler denetleniyor…</string>
-    <string name="flow_is_up_to_date">Flow güncel!</string>
+    <string name="flow_is_up_to_date">SuperTube güncel!</string>
     <string name="update_check_failed">Güncellemeler denetlenemedi. Bağlantını kontrol et.</string>
     <string name="export_engine_data">Motor Profilini Dışa Aktar</string>
     <string name="export_engine_data_subtitle">Yapay zeka kişiliğini ve öğrenme verilerini yedekle</string>
@@ -2810,7 +2810,7 @@
     </plurals>
     <string name="support_flow_open_collective">Open Collective\'de Flow\'u destekle</string>
     <string name="about_creator_name">A-EDev</string>
-    <string name="about_website_address">flow-tube.org</string>
+    <string name="about_website_address"></string>
     <string name="about_reddit">Reddit</string>
     <string name="about_reddit_subtitle">r/Flow_Official</string>
     <string name="about_notices">Açık kaynak bildirimleri</string>
