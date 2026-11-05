@@ -1102,7 +1102,7 @@
     <string name="pause_watch_history_title">ຢຸດປະຫວັດການເບິ່ງຊົ່ວຄາວ</string>
     <string name="pause_watch_history_subtitle">ຢຸດບັນທຶກສິ່ງທີ່ທ່ານເບິ່ງ. Deep Flow ຍັງຢຸດການຮຽນຮູ້ຊົ່ວຄາວ</string>
     <string name="content_settings_show_app_logo_title">ສະແດງໄອຄອນໂລໂກ້ແອັບ</string>
-    <string name="content_settings_show_app_logo_subtitle">ສະແດງໂລໂກ້ Flow ໃນແຖບເທິງສຸດຂອງຫນ້າທໍາອິດ</string>
+    <string name="content_settings_show_app_logo_subtitle">ສະແດງໂລໂກ້ SuperTube ໃນແຖບເທິງສຸດຂອງຫນ້າທໍາອິດ</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">ສະແດງ Shorts</string>
     <string name="content_settings_shorts_content_subtitle">ເຊື່ອງ Shorts ຢູ່ທົ່ວທຸກແຫ່ງ. ບັນທຶກ Shorts ແລະປະຫວັດຈະຖືກເກັບຮັກສາໄວ້.</string>
@@ -3320,7 +3320,7 @@
     <string name="ui_navigate">ນຳທາງ</string>
     <string name="ui_options">ທາງເລືອກ</string>
     <string name="ui_selected">ເລືອກແລ້ວ</string>
-    <string name="ui_flow_logo">ໂລໂກ້ Flow</string>
+    <string name="ui_flow_logo">ໂລໂກ້ SuperTube</string>
     <string name="ui_list_view">ມຸມມອງລາຍການ</string>
     <string name="ui_grid_view">ມຸມມອງຕາຕະລາງ</string>
     <string name="ui_back">ກັບຄືນໄປບ່ອນ</string>

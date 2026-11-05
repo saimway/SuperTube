@@ -21,7 +21,7 @@
                         android:scaleY="0.60">
                         <path
                             android:fillColor="#1C1B1F"
-                            android:pathData="M10 7L18 7L17.2 9.5H12.8L12.2 11.5H16L15.2 14H11.5L10.5 17H7.5L10 7Z" />
+                            android:pathData="M10 8.5L16 12L10 15.5Z" />
                     </group>
             </group>
         </group>

@@ -733,7 +733,7 @@
     <string name="content_settings_video_card_mark_watched_title">동영상 카드의 시청 완료 버튼</string>
     <string name="content_settings_video_card_mark_watched_subtitle">전체 및 간결한 동영상 카드에 눈 모양 버튼을 표시하여 빠르게 시청한 것으로 표시합니다</string>
     <string name="content_settings_show_app_logo_title">앱 로고 아이콘 표시</string>
-    <string name="content_settings_show_app_logo_subtitle">홈 화면 상단 표시줄에서 앱 이름 옆에 Flow 로고를 표시합니다</string>
+    <string name="content_settings_show_app_logo_subtitle">홈 화면 상단 표시줄에서 앱 이름 옆에 SuperTube 로고를 표시합니다</string>
     <string name="content_settings_header_content_components">콘텐츠 구성요소</string>
     <string name="content_settings_restored_music_mini_player_title">복원된 음악 미니 플레이어 표시</string>
     <string name="content_settings_restored_music_mini_player_subtitle">마지막 음악 세션이 복원되면 자동으로 표시합니다</string>
@@ -1919,7 +1919,7 @@
     <string name="ui_navigate">이동</string>
     <string name="ui_options">옵션</string>
     <string name="ui_selected">선택됨</string>
-    <string name="ui_flow_logo">Flow 로고</string>
+    <string name="ui_flow_logo">SuperTube 로고</string>
     <string name="ui_list_view">목록 보기</string>
     <string name="ui_grid_view">그리드 보기</string>
     <string name="ui_back">뒤로</string>
@@ -2351,7 +2351,7 @@
     <string name="deep_flow_scrobble_subtitle">Last.fm, Libre.fm 및 ListenBrainz에 대한 청취를 계속 보내십시오.</string>
     <string name="deep_flow_on_search_title">검색에 표시</string>
     <string name="deep_flow_on_search_subtitle">최근 검색 위의 Deep Flow 스위치</string>
-    <string name="deep_flow_long_press_hint">Deep Flow를 전환하려면 홈에서 Flow 로고나 이름을 길게 누르세요.</string>
+    <string name="deep_flow_long_press_hint">Deep Flow를 전환하려면 홈에서 SuperTube 로고나 이름을 길게 누르세요.</string>
     <plurals name="deep_flow_duration_hours">
         <item quantity="other">%1$d시간</item>
     </plurals>

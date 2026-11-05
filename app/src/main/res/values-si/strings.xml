@@ -680,7 +680,7 @@
     <string name="deep_flow_scrobble_subtitle">Last.fm, Libre.fm සහ ListenBrainz වෙත සවන් දීම දිගටම එවන්න</string>
     <string name="deep_flow_on_search_title">සෙවුමේ පෙන්වන්න</string>
     <string name="deep_flow_on_search_subtitle">මෑත සෙවුම් වලට ඉහලින් ගැඹුරු Flow ස්විචයක්</string>
-    <string name="deep_flow_long_press_hint">ගැඹුරු Flow මාරු කිරීමට නිවසේ Flow ලාංඡනය හෝ නම දිගු වේලාවක් ඔබන්න</string>
+    <string name="deep_flow_long_press_hint">ගැඹුරු Flow මාරු කිරීමට නිවසේ SuperTube ලාංඡනය හෝ නම දිගු වේලාවක් ඔබන්න</string>
     <string name="deep_flow_dialog_title">විරාම කාල සීමාව</string>
     <string name="deep_flow_dialog_body">ඉගෙනීම කොපමණ කාලයක් නතර කළ යුතුද?</string>
     <string name="deep_flow_enabled_message">ගැඹුරු Flow සබල කර ඇත</string>
@@ -853,7 +853,7 @@
     <string name="app_icon_apply_toast">නිරූපකය යාවත්කාලීන කරන ලදී - ඔබේ දියත් කිරීම නැවුම් වනු ඇත</string>
     <string name="icon_name_flow_red">SuperTube රතු</string>
     <string name="icon_name_flow_light">Flow ආලෝකය</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="icon_name_amoled">AMOLED අඳුරු</string>
     <string name="icon_name_monochrome">ඒකවර්ණ</string>
     <string name="icon_name_ghost">අවතාරය</string>
@@ -1124,7 +1124,7 @@
     <string name="pause_watch_history_title">නැරඹුම් ඉතිහාසය විරාම කරන්න</string>
     <string name="pause_watch_history_subtitle">ඔබ නරඹන දේ සුරැකීම නවත්වන්න. ගැඹුරු Flow ඉගෙනීමද නවත්වයි</string>
     <string name="content_settings_show_app_logo_title">යෙදුම් ලාංඡන නිරූපකය පෙන්වන්න</string>
-    <string name="content_settings_show_app_logo_subtitle">මුල් පිටුවේ ඉහළ තීරුවේ Flow ලාංඡනය පෙන්වන්න</string>
+    <string name="content_settings_show_app_logo_subtitle">මුල් පිටුවේ ඉහළ තීරුවේ SuperTube ලාංඡනය පෙන්වන්න</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Shorts පෙන්වන්න</string>
     <string name="content_settings_shorts_content_subtitle">Shorts සෑම තැනකම සඟවන්න. සුරකින ලද Shorts සහ ඉතිහාසය තබා ඇත.</string>
@@ -3386,7 +3386,7 @@
     <string name="ui_navigate">සැරිසරන්න</string>
     <string name="ui_options">විකල්ප</string>
     <string name="ui_selected">තෝරා ගන්නා ලදී</string>
-    <string name="ui_flow_logo">Flow ලාංඡනය</string>
+    <string name="ui_flow_logo">SuperTube ලාංඡනය</string>
     <string name="ui_list_view">ලැයිස්තු දර්ශනය</string>
     <string name="ui_grid_view">ජාල දර්ශනය</string>
     <string name="ui_back">ආපසු</string>

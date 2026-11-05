@@ -701,7 +701,7 @@
     <string name="deep_flow_scrobble_subtitle">Наставите да шаљете слушања Last.fm, Либре.фм и ListenBrainz</string>
     <string name="deep_flow_on_search_title">Прикажи у претрази</string>
     <string name="deep_flow_on_search_subtitle">Дубоки прекидач Flow изнад недавних претрага</string>
-    <string name="deep_flow_long_press_hint">Дуго притисните Flow лого или име на почетној страници да бисте пребацили Дееп Flow</string>
+    <string name="deep_flow_long_press_hint">Дуго притисните SuperTube лого или име на почетној страници да бисте пребацили Дееп Flow</string>
     <string name="deep_flow_dialog_title">Трајање паузе</string>
     <string name="deep_flow_dialog_body">Колико дуго учење треба да буде паузирано?</string>
     <string name="deep_flow_enabled_message">Дееп Flow је омогућен</string>
@@ -1148,7 +1148,7 @@
     <string name="pause_watch_history_title">Паузирајте историју гледања</string>
     <string name="pause_watch_history_subtitle">Престаните да чувате оно што гледате. Дееп Flow такође паузира учење</string>
     <string name="content_settings_show_app_logo_title">Прикажи икону логотипа апликације</string>
-    <string name="content_settings_show_app_logo_subtitle">Прикажите логотип Flow на горњој траци Почетна</string>
+    <string name="content_settings_show_app_logo_subtitle">Прикажите логотип SuperTube на горњој траци Почетна</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Прикажи Shorts</string>
     <string name="content_settings_shorts_content_subtitle">Сакријте Shorts свуда. Сачувани Shorts и историја се чувају.</string>
@@ -3454,7 +3454,7 @@
     <string name="ui_navigate">Навигација</string>
     <string name="ui_options">Опције</string>
     <string name="ui_selected">Одабрано</string>
-    <string name="ui_flow_logo">Flow лого</string>
+    <string name="ui_flow_logo">SuperTube лого</string>
     <string name="ui_list_view">Приказ листе</string>
     <string name="ui_grid_view">Мрежни приказ</string>
     <string name="ui_back">Назад</string>

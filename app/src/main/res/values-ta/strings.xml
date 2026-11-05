@@ -680,7 +680,7 @@
     <string name="deep_flow_scrobble_subtitle">Last.fm, Libre.fm மற்றும் ListenBrainz ஆகியவற்றிற்கு தொடர்ந்து கேட்கவும்</string>
     <string name="deep_flow_on_search_title">தேடலில் காட்டு</string>
     <string name="deep_flow_on_search_subtitle">சமீபத்திய தேடல்களுக்கு மேல் ஆழமான Flow சுவிட்ச்</string>
-    <string name="deep_flow_long_press_hint">டீப் Flowஐ மாற்ற முகப்பில் உள்ள Flow லோகோ அல்லது பெயரை நீண்ட நேரம் அழுத்தவும்</string>
+    <string name="deep_flow_long_press_hint">டீப் Flowஐ மாற்ற முகப்பில் உள்ள SuperTube லோகோ அல்லது பெயரை நீண்ட நேரம் அழுத்தவும்</string>
     <string name="deep_flow_dialog_title">இடைநிறுத்த காலம்</string>
     <string name="deep_flow_dialog_body">கற்றல் எவ்வளவு காலம் இடைநிறுத்தப்பட வேண்டும்?</string>
     <string name="deep_flow_enabled_message">ஆழமான Flow இயக்கப்பட்டது</string>
@@ -1124,7 +1124,7 @@
     <string name="pause_watch_history_title">பார்வை வரலாற்றை இடைநிறுத்து</string>
     <string name="pause_watch_history_subtitle">நீங்கள் பார்ப்பதைச் சேமிப்பதை நிறுத்துங்கள். ஆழமான Flow கற்றலையும் இடைநிறுத்துகிறது</string>
     <string name="content_settings_show_app_logo_title">பயன்பாட்டு லோகோ ஐகானைக் காட்டு</string>
-    <string name="content_settings_show_app_logo_subtitle">முகப்பு மேல் பட்டியில் Flow லோகோவைக் காட்டு</string>
+    <string name="content_settings_show_app_logo_subtitle">முகப்பு மேல் பட்டியில் SuperTube லோகோவைக் காட்டு</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Shortsஐக் காட்டு</string>
     <string name="content_settings_shorts_content_subtitle">எல்லா இடங்களிலும் Shorts ஐ மறை. சேமிக்கப்பட்ட Shorts மற்றும் வரலாறு சேமிக்கப்படும்.</string>
@@ -3386,7 +3386,7 @@
     <string name="ui_navigate">வழிசெலுத்து</string>
     <string name="ui_options">விருப்பங்கள்</string>
     <string name="ui_selected">தேர்ந்தெடுக்கப்பட்டது</string>
-    <string name="ui_flow_logo">Flow லோகோ</string>
+    <string name="ui_flow_logo">SuperTube லோகோ</string>
     <string name="ui_list_view">பட்டியல் காட்சி</string>
     <string name="ui_grid_view">கட்டக் காட்சி</string>
     <string name="ui_back">மீண்டும்</string>

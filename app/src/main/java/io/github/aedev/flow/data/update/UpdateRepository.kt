@@ -104,10 +104,11 @@ class UpdateRepository
                             .cacheControl(CacheControl.FORCE_NETWORK)
                             .build()
                     client.newCall(request).execute().use { response ->
+                        if (response.code == 404) return@withContext null
                         if (!response.isSuccessful) throw IOException("Update check failed: HTTP ${response.code}")
                         response.body.string()
                     }
-                }
+                } ?: return null
             val parsed = parseGitHubRelease(body)
             val release =
                 if (isNightly) {

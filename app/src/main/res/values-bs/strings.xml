@@ -847,7 +847,7 @@
     <string name="deep_flow_scrobble_subtitle">Nastavite sa slanjem slušanja Last.fm, Libre.fm i ListenBrainz</string>
     <string name="deep_flow_on_search_title">Prikaži na pretrazi</string>
     <string name="deep_flow_on_search_subtitle">Duboki prekidač Flow iznad nedavnih pretraživanja</string>
-    <string name="deep_flow_long_press_hint">Dugo pritisnite Flow logo ili ime na Početnoj stranici da prebacite Deep Flow</string>
+    <string name="deep_flow_long_press_hint">Dugo pritisnite SuperTube logo ili ime na Početnoj stranici da prebacite Deep Flow</string>
     <plurals name="deep_flow_duration_hours">
         <item quantity="one">%1$d sat</item>
         <item quantity="few">%1$d sata</item>
@@ -910,7 +910,7 @@
     <string name="appearance_system_defaults_subtitle">Odaberite koja će se tema koristiti kada vaš uređaj prelazi između svijetlog i tamnog načina rada.</string>
     <string name="appearance_system_light_theme">Tema za svjetlosni način rada</string>
     <string name="appearance_system_dark_theme">Tamna tema</string>
-    <string name="icon_name_flow_light">Flow Light</string>
+    <string name="icon_name_flow_light">SuperTube Light</string>
     <string name="icon_name_flow_play">Flow Igraj</string>
     <string name="icon_name_material_sky">Materijalno nebo</string>
     <string name="icon_name_material_mint">Materijal Mint</string>
@@ -3461,7 +3461,7 @@
     <string name="ui_navigate">Navigate</string>
     <string name="ui_options">Opcije</string>
     <string name="ui_selected">Odabrano</string>
-    <string name="ui_flow_logo">Flow logo</string>
+    <string name="ui_flow_logo">SuperTube logo</string>
     <string name="ui_list_view">Prikaz liste</string>
     <string name="ui_grid_view">Mrežni prikaz</string>
     <string name="ui_back">Nazad</string>

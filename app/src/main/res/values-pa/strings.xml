@@ -683,7 +683,7 @@
     <string name="deep_flow_scrobble_subtitle">Last.fm, Libre.fm ਅਤੇ ListenBrainz ਨੂੰ ਸੁਣਨ ਨੂੰ ਭੇਜਦੇ ਰਹੋ</string>
     <string name="deep_flow_on_search_title">ਖੋਜ \'ਤੇ ਦਿਖਾਓ</string>
     <string name="deep_flow_on_search_subtitle">ਹਾਲੀਆ ਖੋਜਾਂ ਦੇ ਉੱਪਰ ਇੱਕ ਡੂੰਘੀ Flow ਸਵਿੱਚ</string>
-    <string name="deep_flow_long_press_hint">ਡੀਪ Flow ਨੂੰ ਬਦਲਣ ਲਈ ਹੋਮ \'ਤੇ Flow ਲੋਗੋ ਜਾਂ ਨਾਮ ਨੂੰ ਦੇਰ ਤੱਕ ਦਬਾਓ</string>
+    <string name="deep_flow_long_press_hint">ਡੀਪ Flow ਨੂੰ ਬਦਲਣ ਲਈ ਹੋਮ \'ਤੇ SuperTube ਲੋਗੋ ਜਾਂ ਨਾਮ ਨੂੰ ਦੇਰ ਤੱਕ ਦਬਾਓ</string>
     <string name="deep_flow_dialog_title">ਵਿਰਾਮ ਦੀ ਮਿਆਦ</string>
     <string name="deep_flow_dialog_body">ਸਿੱਖਣ ਨੂੰ ਕਿੰਨਾ ਚਿਰ ਰੁਕਣਾ ਚਾਹੀਦਾ ਹੈ?</string>
     <string name="deep_flow_enabled_message">ਡੀਪ Flow ਸਮਰਥਿਤ</string>
@@ -1127,7 +1127,7 @@
     <string name="pause_watch_history_title">ਦੇਖਣ ਦਾ ਇਤਿਹਾਸ ਰੋਕੋ</string>
     <string name="pause_watch_history_subtitle">ਜੋ ਤੁਸੀਂ ਦੇਖਦੇ ਹੋ ਉਸਨੂੰ ਸੁਰੱਖਿਅਤ ਕਰਨਾ ਬੰਦ ਕਰੋ। ਡੂੰਘੀ Flow ਵੀ ਸਿੱਖਣ ਨੂੰ ਰੋਕਦਾ ਹੈ</string>
     <string name="content_settings_show_app_logo_title">ਐਪ ਲੋਗੋ ਪ੍ਰਤੀਕ ਦਿਖਾਓ</string>
-    <string name="content_settings_show_app_logo_subtitle">ਹੋਮ ਟਾਪ ਬਾਰ ਵਿੱਚ Flow ਲੋਗੋ ਦਿਖਾਓ</string>
+    <string name="content_settings_show_app_logo_subtitle">ਹੋਮ ਟਾਪ ਬਾਰ ਵਿੱਚ SuperTube ਲੋਗੋ ਦਿਖਾਓ</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Shorts ਦਿਖਾਓ</string>
     <string name="content_settings_shorts_content_subtitle">Shorts ਨੂੰ ਹਰ ਥਾਂ ਲੁਕਾਓ। ਸੁਰੱਖਿਅਤ ਕੀਤਾ Shorts ਅਤੇ ਇਤਿਹਾਸ ਰੱਖਿਆ ਗਿਆ ਹੈ।</string>
@@ -3386,7 +3386,7 @@
     <string name="ui_navigate">ਨੈਵੀਗੇਟ ਕਰੋ</string>
     <string name="ui_options">ਵਿਕਲਪ</string>
     <string name="ui_selected">ਚੁਣਿਆ ਗਿਆ</string>
-    <string name="ui_flow_logo">Flow ਲੋਗੋ</string>
+    <string name="ui_flow_logo">SuperTube ਲੋਗੋ</string>
     <string name="ui_list_view">ਸੂਚੀ ਦ੍ਰਿਸ਼</string>
     <string name="ui_grid_view">ਗਰਿੱਡ ਦ੍ਰਿਸ਼</string>
     <string name="ui_back">ਪਿੱਛੇ</string>

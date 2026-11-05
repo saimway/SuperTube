@@ -1155,7 +1155,7 @@
     <string name="player_settings_shorts_background_play">تشغيل الفيديوهات القصيرة في الخلفية</string>
     <string name="player_settings_shorts_background_play_subtitle">استمر في تشغيل الفيديوهات القصيرة عندما يكون التطبيق في الخلفية</string>
     <string name="content_settings_show_app_logo_title">إظهار أيقونة شعار التطبيق</string>
-    <string name="content_settings_show_app_logo_subtitle">إظهار شعار Flow في الشريط العلوي للصفحة الرئيسية</string>
+    <string name="content_settings_show_app_logo_subtitle">إظهار شعار SuperTube في الشريط العلوي للصفحة الرئيسية</string>
     <string name="player_settings_shorts_playback_mode_title">وضع مشغل الفيديوهات القصيرة</string>
     <string name="player_settings_shorts_playback_mode_loop">Loop (تكرار الفيديو القصير الحالي)</string>
     <string name="player_settings_shorts_playback_mode_auto_next">التشغيل التلقائي للتالي (الإنتقال إلي الفيديو القصير التالي)</string>
@@ -1927,7 +1927,7 @@
     <string name="ui_in_library">في المكتبة</string>
     <string name="ui_options">الخيارات</string>
     <string name="ui_selected">محدد</string>
-    <string name="ui_flow_logo">شعار Flow</string>
+    <string name="ui_flow_logo">شعار SuperTube</string>
     <string name="ui_back">تراجع</string>
     <string name="ui_add_songs">إضافة أغاني</string>
     <string name="ui_close_search">إغلاق البحث</string>
@@ -4074,7 +4074,7 @@
     <string name="eq_import_summary">%1$d مرشحات، المضخّم الأوّلي %2$s</string>
     <string name="eq_import_peak">تبلغ القمم %1$s. يضبط المضخّم الأوّلي تلقائيًا المستوى إلى 0 ديسيبل.</string>
     <string name="icon_name_expressive_scallop">المحار</string>
-    <string name="icon_name_expressive_segmented">Segmented F</string>
+    <string name="icon_name_expressive_segmented">Segmented</string>
     <string name="icon_name_expressive_play">التشغيل المشمس</string>
     <string name="icon_name_expressive_sky">برسيم السماء</string>
     <string name="icon_name_expressive_mint">زهرة النعناع</string>
@@ -4714,7 +4714,7 @@
     <string name="keyboard_shortcut_play_pause">تشغيل أو إيقاف</string>
     <string name="keyboard_shortcut_exit_fullscreen">خروج من وضع ملء الشاشة</string>
     <string name="music_service_disabled">تعذّر تشغيل الموسيقى. خدمة الموسيقى في Flow متوقفة على هذا الجهاز.</string>
-    <string name="deep_flow_long_press_hint">اضغط مطولًا على شعار Flow أو اسمه في الشاشة الرئيسية للتبديل إلى Deep Flow</string>
+    <string name="deep_flow_long_press_hint">اضغط مطولًا على شعار SuperTube أو اسمه في الشاشة الرئيسية للتبديل إلى Deep Flow</string>
     <string name="nav_downloads">التنزيلات</string>
     <string name="settings_downloads_nav_tab_title">تبويب التنزيلات في شريط التنقل</string>
     <string name="settings_downloads_nav_tab_subtitle">أضف تبويب التنزيلات إلى شريط التنقل</string>

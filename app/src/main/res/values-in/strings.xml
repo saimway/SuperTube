@@ -561,7 +561,7 @@
     <string name="content_settings_video_card_mark_watched_title">Tombol tandai sudah ditonton pada kartu video</string>
     <string name="content_settings_video_card_mark_watched_subtitle">Tombol mata pada kartu untuk menandai video sebagai telah ditonton</string>
     <string name="content_settings_show_app_logo_title">Tampilkan ikon logo aplikasi</string>
-    <string name="content_settings_show_app_logo_subtitle">Tampilkan logo Flow di bilah atas Beranda</string>
+    <string name="content_settings_show_app_logo_subtitle">Tampilkan logo SuperTube di bilah atas Beranda</string>
     <string name="content_settings_header_content_components">Komponen Konten</string>
     <string name="content_settings_hide_watched_title">Sembunyikan Video yang Sudah Ditonton</string>
     <string name="content_settings_hide_watched_subtitle">Saring video yang sudah Anda tonton dari umpan beranda dan langganan</string>
@@ -1442,7 +1442,7 @@
     <string name="appearance_system_defaults_subtitle">Pilih tema yang digunakan saat perangkat Anda beralih antara mode terang dan gelap.</string>
     <string name="appearance_system_light_theme">Tema mode terang</string>
     <string name="appearance_system_dark_theme">Tema mode gelap</string>
-    <string name="icon_name_flow_light">Flow Light</string>
+    <string name="icon_name_flow_light">SuperTube Light</string>
     <string name="icon_name_material_sky">Material Sky</string>
     <string name="icon_name_material_mint">Material Mint</string>
     <string name="player_adaptive_size_title">Ukuran Pemutar Adaptif</string>

@@ -733,7 +733,7 @@
     <string name="content_settings_video_card_mark_watched_title">Nút đánh dấu đã xem trên thẻ video</string>
     <string name="content_settings_video_card_mark_watched_subtitle">Hiện nút mắt trên thẻ video để đánh dấu đã xem</string>
     <string name="content_settings_show_app_logo_title">Hiện biểu tượng logo ứng dụng</string>
-    <string name="content_settings_show_app_logo_subtitle">Hiện logo Flow trên thanh trên cùng của Trang chủ</string>
+    <string name="content_settings_show_app_logo_subtitle">Hiện logo SuperTube trên thanh trên cùng của Trang chủ</string>
     <string name="content_settings_header_content_components">Thành phần nội dung</string>
     <string name="content_settings_restored_music_mini_player_title">Hiện trình phát nhạc thu nhỏ đã khôi phục</string>
     <string name="content_settings_restored_music_mini_player_subtitle">Hiện phiên nhạc cuối cùng sau khi được khôi phục</string>

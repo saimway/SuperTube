@@ -675,7 +675,7 @@
     <string name="content_settings_video_card_actions_title">Кнопки «Нравится» и «Не нравится» на карточке видео</string>
     <string name="content_settings_video_card_actions_subtitle">Кнопки «Нравится» и «Не нравится» на карточках для настройки вашей ленты</string>
     <string name="content_settings_show_app_logo_title">Отображать логотип приложения</string>
-    <string name="content_settings_show_app_logo_subtitle">Показывать логотип Flow на верхней панели главной страницы.</string>
+    <string name="content_settings_show_app_logo_subtitle">Показывать логотип SuperTube на верхней панели главной страницы.</string>
     <string name="player_settings_shorts_background_play">Фоновое воспроизведение Shorts</string>
     <string name="player_settings_shorts_background_play_subtitle">Продолжать воспроизведение Shorts, когда приложение свернуто</string>
     <string name="currently_following">Текущие подписки</string>
@@ -764,7 +764,7 @@
     <string name="appearance_system_defaults_subtitle">Выберите, какая тема будет использоваться при переключении устройства между светлым и темным режимами.</string>
     <string name="appearance_system_light_theme">Тема в светлом режиме</string>
     <string name="appearance_system_dark_theme">Тема в темном режиме</string>
-    <string name="icon_name_flow_light">Flow Light</string>
+    <string name="icon_name_flow_light">SuperTube Light</string>
     <string name="icon_name_material_sky">Material Sky</string>
     <string name="icon_name_material_mint">Material Mint</string>
     <string name="player_appearance_brightness_gesture_title">Жест яркости</string>
@@ -1606,7 +1606,7 @@
     <string name="appearance_color_alpha">Непрозрачность</string>
     <string name="appearance_navigate_back">Вернуться назад</string>
     <string name="appearance_selected">Выбрано</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="player_fullscreen_seekbar_width_value">%1$d dp</string>
     <string name="lyrics_provider_lyrics_plus">LyricsPlus</string>
     <string name="currently_blocked">В данный момент заблокировано</string>

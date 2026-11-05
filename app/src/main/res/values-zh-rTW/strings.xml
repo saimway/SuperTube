@@ -444,8 +444,8 @@
     <string name="app_icon_picker_warning">變更圖示可能會暫時將 Flow 從主畫面移除。如有需要，請從應用程式抽屜將它加回主畫面。</string>
     <string name="app_icon_apply_toast">圖示已更新－啟動器將重新整理</string>
     <string name="icon_name_flow_red">SuperTube Red</string>
-    <string name="icon_name_flow_light">Flow Light</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_light">SuperTube Light</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="icon_name_amoled">AMOLED黑</string>
     <string name="icon_name_monochrome">單色</string>
     <string name="icon_name_ghost">幽靈</string>
@@ -788,7 +788,7 @@
     <string name="settings_item_app_icon">應用程式圖示</string>
     <string name="settings_item_app_icon_subtitle">自訂啟動器圖示</string>
     <string name="content_settings_show_app_logo_title">顯示應用程式標誌圖示</string>
-    <string name="content_settings_show_app_logo_subtitle">在首頁頂端列顯示 Flow 標誌</string>
+    <string name="content_settings_show_app_logo_subtitle">在首頁頂端列顯示 SuperTube 標誌</string>
     <string name="player_appearance_shorts_ui_subtitle">選擇 Shorts 疊加介面的顯示程度</string>
     <string name="player_appearance_grouped_quality_selector_title">分組畫質選擇器</string>
     <string name="player_appearance_grouped_quality_selector_subtitle">每種解析度顯示一列，列內包含編解碼器</string>
@@ -3097,7 +3097,7 @@
     <string name="ui_navigate">導覽</string>
     <string name="ui_options">選項</string>
     <string name="ui_selected">已選取</string>
-    <string name="ui_flow_logo">Flow 標誌</string>
+    <string name="ui_flow_logo">SuperTube 標誌</string>
     <string name="ui_list_view">清單檢視</string>
     <string name="ui_grid_view">格狀檢視</string>
     <string name="ui_back">返回</string>
@@ -4194,7 +4194,7 @@
     <string name="music_audio_offload_title">硬體音訊解碼</string>
     <string name="music_audio_offload_desc">較省電。部分手機開啟後可能沒有聲音</string>
     <string name="music_service_disabled">無法播放音樂。這部裝置上的 Flow 音樂服務已關閉。</string>
-    <string name="deep_flow_long_press_hint">在首頁長按 Flow 標誌或名稱即可切換 Deep Flow</string>
+    <string name="deep_flow_long_press_hint">在首頁長按 SuperTube 標誌或名稱即可切換 Deep Flow</string>
     <string name="nav_downloads">下載</string>
     <string name="settings_downloads_nav_tab_title">導覽列的下載分頁</string>
     <string name="settings_downloads_nav_tab_subtitle">在導覽列新增「下載」分頁</string>

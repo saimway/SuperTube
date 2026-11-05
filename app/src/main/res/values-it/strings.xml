@@ -503,7 +503,7 @@
     <string name="content_settings_video_card_actions_title">Pulsanti mi piace e non mi piace sulla scheda video</string>
     <string name="content_settings_video_card_actions_subtitle">Pulsanti mi piace e non mi piace sulle schede per ottimizzare il tuo feed</string>
     <string name="content_settings_show_app_logo_title">Mostra icona del logo dell\'app</string>
-    <string name="content_settings_show_app_logo_subtitle">Mostra il logo Flow nella barra superiore della schermata home</string>
+    <string name="content_settings_show_app_logo_subtitle">Mostra il logo SuperTube nella barra superiore della schermata home</string>
     <string name="content_settings_header_content_components">Componenti dei contenuti</string>
     <string name="content_settings_hide_watched_title">Nascondi video già visti</string>
     <string name="content_settings_hide_watched_subtitle">Filtra i video già guardati dal feed home e dalle iscrizioni</string>
@@ -1637,7 +1637,7 @@
     <string name="player_settings_autoplay_countdown_title">Ritardo della riproduzione automatica</string>
     <string name="player_settings_autoplay_countdown_none">Nessuno (cambia immediatamente)</string>
     <string name="player_settings_autoplay_countdown_dialog_body">Conto alla rovescia prima che inizi il prossimo video. Puoi riavviare, annullare o saltare in avanti mentre conta.</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="autoplay_countdown_up_next">A seguire</string>
     <string name="autoplay_countdown_next_video">Prossimo video</string>
     <string name="autoplay_countdown_cancel">Annulla</string>
@@ -2863,7 +2863,7 @@
     <string name="notifications_save_to_watch_later">Salva in Guarda più tardi</string>
     <string name="deep_flow_scrobble_title">Scrobble durante Deep Flow</string>
     <string name="deep_flow_on_search_subtitle">Un pulsante Deep Flow sopra le ricerche recenti</string>
-    <string name="deep_flow_long_press_hint">Tieni premuto il logo Flow o il nome in Home per attivare Deep Flow</string>
+    <string name="deep_flow_long_press_hint">Tieni premuto il logo SuperTube o il nome in Home per attivare Deep Flow</string>
     <string name="notif_check_interval_off_new_videos">Spento mentre Nuovi Video è disattivato</string>
     <string name="icon_name_expressive_scallop">Conchiglia</string>
     <string name="icon_name_expressive_play">Play solare</string>

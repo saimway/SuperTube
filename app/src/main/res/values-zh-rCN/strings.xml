@@ -555,8 +555,8 @@
     <string name="app_icon_picker_warning">注意：切换图标使用 Android 系统机制，可能会暂时从主屏幕上删除应用程序快捷方式。如果需要，长按启动器可将其添加回来。</string>
     <string name="app_icon_apply_toast">图标已更新 - 您的启动器将刷新</string>
     <string name="icon_name_flow_red">SuperTube 红色</string>
-    <string name="icon_name_flow_light">Flow Light</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_light">SuperTube Light</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="icon_name_amoled">AMOLED 深色</string>
     <string name="icon_name_monochrome">单色</string>
     <string name="icon_name_ghost">幽灵</string>
@@ -733,7 +733,7 @@
     <string name="content_settings_video_card_mark_watched_title">视频卡标记为已观看按钮</string>
     <string name="content_settings_video_card_mark_watched_subtitle">在完整和紧凑视频卡上显示眼睛按钮，以快速将视频标记为已观看</string>
     <string name="content_settings_show_app_logo_title">显示应用程序徽标图标</string>
-    <string name="content_settings_show_app_logo_subtitle">在主屏幕顶部栏中应用程序名称旁边显示 Flow 徽标图标</string>
+    <string name="content_settings_show_app_logo_subtitle">在主屏幕顶部栏中应用程序名称旁边显示 SuperTube 徽标图标</string>
     <string name="content_settings_header_content_components">内容组成部分</string>
     <string name="content_settings_restored_music_mini_player_title">显示恢复的音乐迷你播放器</string>
     <string name="content_settings_restored_music_mini_player_subtitle">恢复后自动显示您最后的音乐会话</string>
@@ -2225,7 +2225,7 @@
     <string name="deep_flow_scrobble_subtitle">继续发送收听 Last.fm、Libre.fm 和 ListenBrainz</string>
     <string name="deep_flow_on_search_title">在搜索中显示</string>
     <string name="deep_flow_on_search_subtitle">最近搜索上方的深度 Flow 开关</string>
-    <string name="deep_flow_long_press_hint">长按主页上的 Flow 徽标或名称可切换 Deep Flow</string>
+    <string name="deep_flow_long_press_hint">长按主页上的 SuperTube 徽标或名称可切换 Deep Flow</string>
     <plurals name="deep_flow_duration_hours">
         <item quantity="other">%1$d 小时</item>
     </plurals>

@@ -680,7 +680,7 @@
     <string name="deep_flow_scrobble_subtitle">Last.fm، Libre.fm اور ListenBrainz پر سنز بھیجتے رہیں</string>
     <string name="deep_flow_on_search_title">تلاش پر دکھائیں۔</string>
     <string name="deep_flow_on_search_subtitle">حالیہ تلاشوں کے اوپر ایک گہری Flow سوئچ</string>
-    <string name="deep_flow_long_press_hint">ڈیپ Flow کو سوئچ کرنے کے لیے ہوم پر Flow لوگو یا نام کو دیر تک دبائیں</string>
+    <string name="deep_flow_long_press_hint">ڈیپ Flow کو سوئچ کرنے کے لیے ہوم پر SuperTube لوگو یا نام کو دیر تک دبائیں</string>
     <string name="deep_flow_dialog_title">وقفہ کا دورانیہ</string>
     <string name="deep_flow_dialog_body">سیکھنے کو کب تک روکا جانا چاہئے؟</string>
     <string name="deep_flow_enabled_message">ڈیپ Flow فعال</string>
@@ -1124,7 +1124,7 @@
     <string name="pause_watch_history_title">دیکھنے کی سرگزشت کو روکیں۔</string>
     <string name="pause_watch_history_subtitle">آپ جو دیکھتے ہیں اسے محفوظ کرنا بند کریں۔ ڈیپ Flow سیکھنے کو بھی روکتا ہے۔</string>
     <string name="content_settings_show_app_logo_title">ایپ لوگو کا آئیکن دکھائیں۔</string>
-    <string name="content_settings_show_app_logo_subtitle">ہوم ٹاپ بار میں Flow لوگو دکھائیں۔</string>
+    <string name="content_settings_show_app_logo_subtitle">ہوم ٹاپ بار میں SuperTube لوگو دکھائیں۔</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Shorts دکھائیں۔</string>
     <string name="content_settings_shorts_content_subtitle">ہر جگہ Shorts چھپائیں۔ محفوظ شدہ Shorts اور تاریخ رکھی گئی ہے۔</string>
@@ -3386,7 +3386,7 @@
     <string name="ui_navigate">نیویگیٹ کریں۔</string>
     <string name="ui_options">اختیارات</string>
     <string name="ui_selected">منتخب</string>
-    <string name="ui_flow_logo">Flow لوگو</string>
+    <string name="ui_flow_logo">SuperTube لوگو</string>
     <string name="ui_list_view">فہرست کا نظارہ</string>
     <string name="ui_grid_view">گرڈ کا منظر</string>
     <string name="ui_back">پیچھے</string>

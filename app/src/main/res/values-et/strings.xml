@@ -717,7 +717,7 @@
     <string name="deep_flow_scrobble_subtitle">Jätkake kuulamiste saatmist saidile Last.fm, Libre.fm ja ListenBrainz</string>
     <string name="deep_flow_on_search_title">Näita otsingus</string>
     <string name="deep_flow_on_search_subtitle">Deep Flow lüliti viimaste otsingute kohal</string>
-    <string name="deep_flow_long_press_hint">Deep Flow vahetamiseks vajutage pikalt Flow logo või nime avalehel</string>
+    <string name="deep_flow_long_press_hint">Deep Flow vahetamiseks vajutage pikalt SuperTube logo või nime avalehel</string>
     <string name="deep_flow_dialog_title">Pausi kestus</string>
     <string name="deep_flow_dialog_body">Kui kaua peaks õppimine seisma jääma?</string>
     <string name="deep_flow_enabled_message">Sügav Flow on lubatud</string>
@@ -1151,7 +1151,7 @@
     <string name="pause_watch_history_title">Peata vaatamiste ajalugu</string>
     <string name="pause_watch_history_subtitle">Lõpetage vaadatava salvestamine. Deep Flow peatab ka õppimise</string>
     <string name="content_settings_show_app_logo_title">Kuva rakenduse logo ikoon</string>
-    <string name="content_settings_show_app_logo_subtitle">Kuvage avalehe ülemisel ribal Flow logo</string>
+    <string name="content_settings_show_app_logo_subtitle">Kuvage avalehe ülemisel ribal SuperTube logo</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Näita Shorts</string>
     <string name="content_settings_shorts_content_subtitle">Peida Shorts kõikjal. Salvestatud Shorts ja ajalugu säilitatakse.</string>
@@ -3394,7 +3394,7 @@
     <string name="ui_navigate">Navigeerige</string>
     <string name="ui_options">Valikud</string>
     <string name="ui_selected">Valitud</string>
-    <string name="ui_flow_logo">Flow logo</string>
+    <string name="ui_flow_logo">SuperTube logo</string>
     <string name="ui_list_view">Loendivaade</string>
     <string name="ui_grid_view">Võrgustikvaade</string>
     <string name="ui_back">Tagasi</string>

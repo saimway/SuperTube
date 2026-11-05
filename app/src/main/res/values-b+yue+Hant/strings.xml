@@ -661,7 +661,7 @@
     <string name="deep_flow_scrobble_subtitle">繼續發送 Last.fm 、 Libre . fm 同 ListenBrainz 嘅聽歌</string>
     <string name="deep_flow_on_search_title">喺搜尋嗰陣顯示</string>
     <string name="deep_flow_on_search_subtitle">最近搜尋嘅深度 Flow 開關</string>
-    <string name="deep_flow_long_press_hint">長按主頁上嘅 Flow 標誌或者名稱，就可以切換深 Flow</string>
+    <string name="deep_flow_long_press_hint">長按主頁上嘅 SuperTube 標誌或者名稱，就可以切換深 Flow</string>
     <string name="deep_flow_dialog_title">暫停持續時間</string>
     <string name="deep_flow_dialog_body">學習應該暫停幾耐？</string>
     <string name="deep_flow_enabled_message">啟用咗深層 Flow</string>
@@ -1102,7 +1102,7 @@
     <string name="pause_watch_history_title">暫停睇記錄</string>
     <string name="pause_watch_history_subtitle">唔好再儲存你睇緊嘅嘢。深層 Flow 亦會暫停學習</string>
     <string name="content_settings_show_app_logo_title">顯示應用程式標誌圖示</string>
-    <string name="content_settings_show_app_logo_subtitle">喺主頁頂部列顯示 Flow 標誌</string>
+    <string name="content_settings_show_app_logo_subtitle">喺主頁頂部列顯示 SuperTube 標誌</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">顯示 Shorts</string>
     <string name="content_settings_shorts_content_subtitle">將 Shorts 隱藏喺所有地方。儲存咗嘅 Shorts 同埋記錄都會保留。</string>
@@ -3320,7 +3320,7 @@
     <string name="ui_navigate">導航</string>
     <string name="ui_options">選項</string>
     <string name="ui_selected">揀咗</string>
-    <string name="ui_flow_logo">Flow 標誌</string>
+    <string name="ui_flow_logo">SuperTube 標誌</string>
     <string name="ui_list_view">清單檢視</string>
     <string name="ui_grid_view">網格視圖</string>
     <string name="ui_back">返回</string>

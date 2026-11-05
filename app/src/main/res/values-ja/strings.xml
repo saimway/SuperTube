@@ -778,7 +778,7 @@
     <string name="deep_flow_scrobble_subtitle">Last.fm、Libre.fm、ListenBrainz にリッスンを送信し続けます</string>
     <string name="deep_flow_on_search_title">検索時に表示</string>
     <string name="deep_flow_on_search_subtitle">最近の検索の上にある深い Flow スイッチ</string>
-    <string name="deep_flow_long_press_hint">ホーム上の Flow ロゴまたは名前を長押しして Deep Flow を切り替えます</string>
+    <string name="deep_flow_long_press_hint">ホーム上の SuperTube ロゴまたは名前を長押しして Deep Flow を切り替えます</string>
     <string name="deep_flow_dialog_title">一時停止期間</string>
     <string name="deep_flow_dialog_body">どれくらい学習を一時停止しておく必要がありますか?</string>
     <string name="deep_flow_enabled_message">ディープ Flow が有効になりました</string>
@@ -1207,7 +1207,7 @@
     <string name="pause_watch_history_title">視聴履歴を一時停止する</string>
     <string name="pause_watch_history_subtitle">視聴したものを保存するのはやめてください。ディープ Flow も学習を一時停止します</string>
     <string name="content_settings_show_app_logo_title">アプリのロゴアイコンを表示</string>
-    <string name="content_settings_show_app_logo_subtitle">ホームのトップバーに Flow ロゴを表示する</string>
+    <string name="content_settings_show_app_logo_subtitle">ホームのトップバーに SuperTube ロゴを表示する</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Shortsを表示</string>
     <string name="content_settings_shorts_content_subtitle">Shorts をどこにでも隠します。保存されたShortsと履歴は保持されます。</string>

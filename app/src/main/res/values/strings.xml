@@ -878,9 +878,9 @@
     <string name="app_icon_picker_subtitle">Choose a launcher icon style. The change takes effect immediately and the launcher will briefly refresh.</string>
     <string name="app_icon_picker_warning">Changing the icon may remove SuperTube from your home screen for a moment. Add it back from the app drawer if needed.</string>
     <string name="app_icon_apply_toast">Icon updated - your launcher will refresh</string>
-    <string name="icon_name_flow_red">SuperTube Red</string>
-    <string name="icon_name_flow_light">Flow Light</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_red">SuperTube</string>
+    <string name="icon_name_flow_light">SuperTube Light</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="icon_name_amoled">AMOLED Dark</string>
     <string name="icon_name_monochrome">Monochrome</string>
     <string name="icon_name_ghost">Ghost</string>
@@ -888,7 +888,7 @@
     <string name="icon_name_material_sky">Material Sky</string>
     <string name="icon_name_material_mint">Material Mint</string>
     <string name="icon_name_expressive_scallop">Scallop</string>
-    <string name="icon_name_expressive_segmented">Segmented F</string>
+    <string name="icon_name_expressive_segmented">Segmented</string>
     <string name="icon_name_expressive_play">Sunny Play</string>
     <string name="icon_name_expressive_sky">Sky Clover</string>
     <string name="icon_name_expressive_mint">Mint Flower</string>
@@ -1167,7 +1167,7 @@
     <string name="pause_watch_history_title">Pause watch history</string>
     <string name="pause_watch_history_subtitle">Stop saving what you watch. Deep Mode also pauses learning</string>
     <string name="content_settings_show_app_logo_title">Show app logo icon</string>
-    <string name="content_settings_show_app_logo_subtitle">Show the Flow logo in the Home top bar</string>
+    <string name="content_settings_show_app_logo_subtitle">Show the SuperTube logo in the Home top bar</string>
     <string name="content_settings_header_shorts">Shorts</string>
     <string name="content_settings_shorts_content_title">Show Shorts</string>
     <string name="content_settings_shorts_content_subtitle">Hide Shorts everywhere. Saved Shorts and history are kept.</string>

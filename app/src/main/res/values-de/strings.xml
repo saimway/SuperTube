@@ -542,7 +542,7 @@
     <string name="content_settings_video_card_mark_watched_title">Schaltfläche „Als angesehen markieren“-Button anzeigen</string>
     <string name="content_settings_video_card_mark_watched_subtitle">Zeige auf den Vollbild- und Kompakt-Videokarten eine „Auge“-Schaltfläche an, um Videos schnell als angesehen zu markieren</string>
     <string name="content_settings_show_app_logo_title">App-Logo-Symbol anzeigen</string>
-    <string name="content_settings_show_app_logo_subtitle">Das Flow-Logo neben dem App-Namen in der oberen Leiste des Startbildschirms anzeigen</string>
+    <string name="content_settings_show_app_logo_subtitle">Das SuperTube-Logo neben dem App-Namen in der oberen Leiste des Startbildschirms anzeigen</string>
     <string name="content_settings_header_content_components">Inhaltskomponenten</string>
     <string name="content_settings_hide_watched_title">Angesehene Videos Ausblenden</string>
     <string name="content_settings_hide_watched_subtitle">Filtern Sie Videos, die Sie bereits von Ihrem Home-Feed und Abonnements angesehen haben</string>
@@ -1921,7 +1921,7 @@
         <item quantity="one">%1$d Stunde</item>
         <item quantity="other">%1$d Stunden</item>
     </plurals>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="player_appearance_haptics_title">Vibration</string>
     <string name="player_appearance_gesture_overlay_subtitle">Wie Lautstärke und Helligkeit gezeigt werden, während du wischst</string>
     <string name="gesture_overlay_style_vertical">Vertikal</string>
@@ -2404,7 +2404,7 @@
     <string name="deep_flow_scrobble_subtitle">Senden Sie weiterhin Hörproben an Last.fm, Libre.fm und ListenBrainz</string>
     <string name="deep_flow_on_search_title">Bei der Suche anzeigen</string>
     <string name="deep_flow_on_search_subtitle">Ein tiefer Flow-Schalter über den letzten Suchanfragen</string>
-    <string name="deep_flow_long_press_hint">Drücken Sie lange auf das Flow-Logo oder den Namen auf der Startseite, um Deep Flow zu wechseln</string>
+    <string name="deep_flow_long_press_hint">Drücken Sie lange auf das SuperTube-Logo oder den Namen auf der Startseite, um Deep Flow zu wechseln</string>
     <string name="notif_type_shorts_subtitle">Fügen Sie Shorts in Benachrichtigungen zu neuen Videos aus Abonnements ein</string>
     <string name="notif_check_interval_off_new_videos">Aus, während „Neue Videos“ ausgeschaltet ist</string>
     <string name="appearance_role_surface_container_lowest">Oberflächenbehälter am niedrigsten</string>
@@ -3440,7 +3440,7 @@
     <string name="ui_navigate">Navigieren</string>
     <string name="ui_options">Optionen</string>
     <string name="ui_selected">Ausgewählt</string>
-    <string name="ui_flow_logo">Flow-Logo</string>
+    <string name="ui_flow_logo">SuperTube-Logo</string>
     <string name="ui_list_view">Listenansicht</string>
     <string name="ui_grid_view">Rasteransicht</string>
     <string name="ui_back">Zurück</string>

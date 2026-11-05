@@ -1664,7 +1664,7 @@
     <string name="appearance_color_alpha">Opacidad</string>
     <string name="appearance_navigate_back">Volver atrás</string>
     <string name="appearance_selected">Seleccionado</string>
-    <string name="icon_name_flow_play">Flow Play</string>
+    <string name="icon_name_flow_play">SuperTube Play</string>
     <string name="player_appearance_hide_music_artwork_title">Ocultar la portada del reproductor de música</string>
     <string name="player_appearance_hide_music_artwork_subtitle">Mostrar el icono de la aplicación con el color extraído de la portada</string>
     <string name="subscriptions_sort_label">Ordenar canales</string>
