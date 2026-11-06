@@ -407,7 +407,6 @@ private fun MovieDetailContent(
                         )
                     }
                 }
-                }
 
                 // Overview / Synopsis
                 if (movie.overview.isNotBlank()) {

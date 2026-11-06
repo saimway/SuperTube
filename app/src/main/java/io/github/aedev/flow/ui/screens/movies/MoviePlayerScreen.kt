@@ -701,7 +701,7 @@ fun MoviePlayerScreen(
                     }
 
                     // Resume Badge in Portrait
-                    AnimatedVisibility(
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = showResumeBadge && isStreamPlaying,
                         enter = fadeIn(),
                         exit = fadeOut(),
