@@ -57,8 +57,8 @@ android {
         applicationId = "com.supertube"
         minSdk = 26
         targetSdk = 36
-        versionCode = 21
-        versionName = "3.0.2"
+        versionCode = 22
+        versionName = "3.0.3"
 
         buildConfigField("int", "NIGHTLY_RUN", "0")
         buildConfigField("String", "APP_LANGUAGE_TAGS", "\"${(listOf("en") + translatedLocaleTags()).joinToString(",")}\"")
@@ -130,17 +130,17 @@ android {
             storePassword = (project.findProperty("storePassword") as? String)?.takeIf { it.isNotBlank() }
                 ?: localProperties.getProperty("storePassword")?.takeIf { it.isNotBlank() }
                 ?: envStorePass
-                ?: (if (useOfficialRelease) "" else "supertube")
+                ?: (if (useOfficialRelease) "" else "android")
 
             keyAlias = (project.findProperty("keyAlias") as? String)?.takeIf { it.isNotBlank() }
                 ?: localProperties.getProperty("keyAlias")?.takeIf { it.isNotBlank() }
                 ?: envKeyAlias
-                ?: (if (useOfficialRelease) "" else "supertube")
+                ?: (if (useOfficialRelease) "" else "androiddebugkey")
 
             keyPassword = (project.findProperty("keyPassword") as? String)?.takeIf { it.isNotBlank() }
                 ?: localProperties.getProperty("keyPassword")?.takeIf { it.isNotBlank() }
                 ?: envKeyPass
-                ?: (if (useOfficialRelease) "" else "supertube")
+                ?: (if (useOfficialRelease) "" else "android")
         }
         // One long-lived key for every nightly, so each build installs over the last one.
         create("nightly") {
@@ -155,15 +155,15 @@ android {
 
             storePassword = envNightlyStorePass
                 ?: localProperties.getProperty("nightlyStorePassword")?.takeIf { it.isNotBlank() }
-                ?: (if (useOfficialNightly) "" else "supertube")
+                ?: (if (useOfficialNightly) "" else "android")
 
             keyAlias = envNightlyKeyAlias
                 ?: localProperties.getProperty("nightlyKeyAlias")?.takeIf { it.isNotBlank() }
-                ?: (if (useOfficialNightly) "" else "supertube")
+                ?: (if (useOfficialNightly) "" else "androiddebugkey")
 
             keyPassword = envNightlyKeyPass
                 ?: localProperties.getProperty("nightlyKeyPassword")?.takeIf { it.isNotBlank() }
-                ?: (if (useOfficialNightly) "" else "supertube")
+                ?: (if (useOfficialNightly) "" else "android")
         }
     }
 

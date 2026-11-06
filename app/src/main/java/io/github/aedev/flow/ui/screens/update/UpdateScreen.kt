@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -46,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -85,7 +83,6 @@ fun UpdateScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     val release = state.release
 
@@ -103,7 +100,6 @@ fun UpdateScreen(
                                 viewModel.skip()
                                 onClose()
                             },
-                            onOpenGitHub = { uriHandler.openUri(release.pageUrl) },
                         )
                     }
                 },
@@ -219,7 +215,6 @@ private fun UpdateFailure.messageRes(): Int =
 @Composable
 private fun UpdateMenu(
     onSkip: () -> Unit,
-    onOpenGitHub: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -231,14 +226,6 @@ private fun UpdateMenu(
                 onClick = {
                     open = false
                     onSkip()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.update_open_github)) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, contentDescription = null) },
-                onClick = {
-                    open = false
-                    onOpenGitHub()
                 },
             )
         }
