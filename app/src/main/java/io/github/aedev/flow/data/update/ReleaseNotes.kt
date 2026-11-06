@@ -1,7 +1,5 @@
 package io.github.aedev.flow.data.update
 
-private const val REPO_URL = "https://github.com/saimway/SuperTube"
-private const val GITHUB_URL = "https://github.com"
 private const val RELEASE_DATE_LABEL = "**release date"
 
 /** Release notes split the way the update page shows them: an intro, then titled sections of items. */
@@ -82,6 +80,11 @@ fun parseReleaseNotes(markdown: String): ReleaseNotes {
                 flushParagraph()
             }
 
+            line.contains("github.com", ignoreCase = true) &&
+                (line.contains("releases", ignoreCase = true) || line.contains("changelog", ignoreCase = true)) -> {
+                flushParagraph()
+            }
+
             heading != null && heading.groupValues[1].length == 1 -> {
                 flushParagraph()
             }
@@ -115,10 +118,22 @@ internal fun parseInline(text: String): NoteText {
         spans +=
             when {
                 bold.isNotEmpty() -> NoteSpan.Strong(bold)
-                label.isNotEmpty() -> NoteSpan.Link(label, url)
-                issue.isNotEmpty() -> NoteSpan.Link("#$issue", "$REPO_URL/issues/$issue")
-                user.isNotEmpty() -> NoteSpan.Link("@$user", "$GITHUB_URL/$user")
-                else -> NoteSpan.Link(bare, bare)
+                label.isNotEmpty() -> {
+                    if (url.contains("github.com", ignoreCase = true)) {
+                        NoteSpan.Plain(label)
+                    } else {
+                        NoteSpan.Link(label, url)
+                    }
+                }
+                issue.isNotEmpty() -> NoteSpan.Plain("#$issue")
+                user.isNotEmpty() -> NoteSpan.Plain("@$user")
+                else -> {
+                    if (bare.contains("github.com", ignoreCase = true)) {
+                        NoteSpan.Plain(bare)
+                    } else {
+                        NoteSpan.Link(bare, bare)
+                    }
+                }
             }
         cursor = match.range.last + 1
     }

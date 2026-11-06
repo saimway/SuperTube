@@ -52,8 +52,8 @@ class ReleaseNotesTest {
     fun `mentions, issues and bold keep their meaning`() {
         val items = parseReleaseNotes(body).sections.first().items
 
-        assertThat(items[0].spans.last()).isEqualTo(Link("@PastaHimself", "https://github.com/PastaHimself"))
-        assertThat(items[1].spans.last()).isEqualTo(Link("#823", "https://github.com/saimway/SuperTube/issues/823"))
+        assertThat(items[0].spans.last()).isEqualTo(Plain("@PastaHimself"))
+        assertThat(items[1].spans.last()).isEqualTo(Plain("#823"))
         assertThat(items[2].spans).containsExactly(Plain("A "), Strong("bold"), Plain(" claim")).inOrder()
     }
 
@@ -71,9 +71,10 @@ class ReleaseNotesTest {
     }
 
     @Test
-    fun `bare links become links`() {
-        val spans = parseInline("See https://github.com/Flow-Tube/Flow/releases for more").spans
+    fun `bare non-github links become links and github links become plain text`() {
+        val spans = parseInline("See https://github.com/Flow-Tube/Flow/releases and https://example.com for more").spans
 
-        assertThat(spans[1]).isEqualTo(Link("https://github.com/Flow-Tube/Flow/releases", "https://github.com/Flow-Tube/Flow/releases"))
+        assertThat(spans[1]).isEqualTo(Plain("https://github.com/Flow-Tube/Flow/releases"))
+        assertThat(spans[3]).isEqualTo(Link("https://example.com", "https://example.com"))
     }
 }

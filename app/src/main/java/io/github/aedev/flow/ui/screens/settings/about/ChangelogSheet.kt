@@ -26,9 +26,7 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -48,8 +46,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -68,7 +64,6 @@ import java.time.format.FormatStyle
 
 private const val TAG = "ChangelogSheet"
 private const val CHANGELOG_DIR = "changelog"
-private const val RELEASES_URL = "https://github.com/saimway/SuperTube/releases"
 
 private val ListPadding = 16.dp
 private val RowPadding = 16.dp
@@ -93,7 +88,6 @@ private val StateHeight = 240.dp
 @Composable
 internal fun ChangelogSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
     val releases by produceState<List<ChangelogRelease>?>(null) {
         value = withContext(Dispatchers.IO) { loadChangelogs(context) }
     }
@@ -152,21 +146,6 @@ internal fun ChangelogSheet(onDismiss: () -> Unit) {
                                 expanded = if (release.version in open) open - release.version else open + release.version
                             },
                         )
-                    }
-                    item(key = "all_releases") {
-                        FilledTonalButton(
-                            onClick = { runCatching { uriHandler.openUri(RELEASES_URL) } },
-                            modifier = Modifier.fillMaxWidth().padding(top = ListPadding),
-                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.ic_github),
-                                contentDescription = null,
-                                modifier = Modifier.size(ButtonDefaults.IconSize),
-                            )
-                            Box(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(stringResource(R.string.settings_changelog_all_releases))
-                        }
                     }
                 }
             }

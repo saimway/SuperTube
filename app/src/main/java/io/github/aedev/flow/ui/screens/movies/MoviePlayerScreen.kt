@@ -152,10 +152,12 @@ private val BLOCKED_AD_HOSTS = setOf(
     "popads.net",
     "popcash.net",
     "propellerads.com",
+    "propellerclick.com",
     "adsterra.com",
     "exoclick.com",
     "juicyads.com",
     "onclickpredictiv.com",
+    "onclickmega.com",
     "histats.com",
     "bet365.com",
     "1xbet.com",
@@ -178,6 +180,17 @@ private val BLOCKED_AD_HOSTS = setOf(
     "zeroredirect.com",
     "trafficfactory.biz",
     "trafficjunky.com",
+    "trafficstars.com",
+    "tsyndicate.com",
+    "adtng.com",
+    "adxadserv.com",
+    "bidgear.com",
+    "adcash.com",
+    "rollerads.com",
+    "exdynsrv.com",
+    "etahub.com",
+    "clksite.com",
+    "m2pub.com",
     "rtbmark.com",
     "adnxs.com",
     "criteo.com",
@@ -186,6 +199,12 @@ private val BLOCKED_AD_HOSTS = setOf(
     "serving-sys.com",
     "yllix.com",
     "bidvertiser.com",
+    "smartadserver.com",
+    "revcontent.com",
+    "adblade.com",
+    "adbutler.com",
+    "pubmatic.com",
+    "rubiconproject.com",
 )
 
 private val BLOCKED_URL_PATTERNS = listOf(
@@ -204,10 +223,14 @@ private val BLOCKED_URL_PATTERNS = listOf(
     "adserver",
     "popup.js",
     "popunder.js",
+    "onclick",
     "/vast",
     "/vpaid",
     "prebid",
     "openx",
+    "adsystem",
+    "tracker.js",
+    "syndication",
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1302,12 +1325,9 @@ private fun createSandboxedWebView(
 
                 val host = url.host?.lowercase().orEmpty()
 
-                // Main frame navigation protection: NEVER let an ad redirect navigate the player away from streaming
-                if (request?.isForMainFrame == true) {
-                    if (!isAllowedStreamingHost(host) && urlString != "about:blank") {
-                        // Drop ad navigation completely, preserving the active video player
-                        return true
-                    }
+                // NEVER let any ad redirect or popup navigate the player away from streaming
+                if (!isAllowedStreamingHost(host) && urlString != "about:blank") {
+                    return true
                 }
 
                 // Block known ad domains and ad URL patterns
@@ -1346,13 +1366,37 @@ private fun createSandboxedWebView(
                         $seekInit
                         var hasResumed = false;
 
-                        // Disarm popups and alerts
+                        // Inject ad neutralizing CSS rule immediately
+                        try {
+                            var css = 'iframe[id*="ad"],iframe[class*="ad"],iframe[src*="ad"],iframe[src*="banner"],iframe[src*="pop"],div[id*="ad-"],div[class*="ad-"],div[id*="banner"],div[class*="banner"],div[id*="pop"],div[class*="pop"],div[class*="sponsor"],div[id*="sponsor"],[id*="google_ads"],[id*="aswift"],div[style*="z-index: 2147483647"],div[style*="z-index:999999"],div[style*="z-index: 999999"],div[style*="z-index:100000"],div[style*="z-index: 100000"],div[style*="z-index:99999"],div[style*="z-index: 99999"]{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;}';
+                            var styleTag = document.createElement('style');
+                            styleTag.textContent = css;
+                            (document.head || document.documentElement).appendChild(styleTag);
+                        } catch(e) {}
+
+                        // Disarm popups, alerts, and new-tab navigation
                         try {
                             window.open = function() { return null; };
                             window.alert = function() {};
                             window.confirm = function() { return false; };
                             window.prompt = function() { return null; };
                         } catch(e) {}
+
+                        // Intercept click traps on capture phase
+                        window.addEventListener('click', function(e) {
+                            var t = e.target;
+                            while (t && t !== document.body) {
+                                if (t.tagName === 'A') {
+                                    if (t.target === '_blank' || (t.href && !t.href.startsWith(window.location.origin))) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        e.stopImmediatePropagation();
+                                        return false;
+                                    }
+                                }
+                                t = t.parentElement;
+                            }
+                        }, true);
 
                         // Remove click-jack overlay divs and ad banners
                         var removeAdElements = function() {
@@ -1372,7 +1416,7 @@ private fun createSandboxedWebView(
                                     var els = document.querySelectorAll(s);
                                     for (var i = 0; i < els.length; i++) {
                                         var el = els[i];
-                                        if (el.tagName !== 'VIDEO' && !el.querySelector('video') && !el.classList.contains('jwplayer') && !el.classList.contains('plyr')) {
+                                        if (el.tagName !== 'VIDEO' && !el.querySelector('video') && !el.classList.contains('jwplayer') && !el.classList.contains('plyr') && !el.classList.contains('vjs-tech')) {
                                             el.remove();
                                         }
                                     }
@@ -1380,7 +1424,11 @@ private fun createSandboxedWebView(
                             });
                         };
                         removeAdElements();
-                        setInterval(removeAdElements, 800);
+                        try {
+                            var obs = new MutationObserver(removeAdElements);
+                            obs.observe(document.documentElement, { childList: true, subtree: true });
+                        } catch(e) {}
+                        setInterval(removeAdElements, 600);
 
                         window.addEventListener('message', function(e) {
                             try {

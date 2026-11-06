@@ -1,15 +1,7 @@
 package io.github.aedev.flow.ui.components.shared
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.os.Environment
 import android.os.StatFs
-import android.provider.Settings
-import android.widget.Toast
-import androidx.core.content.edit
-import androidx.core.net.toUri
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -37,32 +29,12 @@ internal data class DownloadSaveFolder(
 
 /** Starts the downloads both download dialogs offer, asking for storage access once on the way. */
 internal object DownloadLauncher {
-    private const val STORAGE_PREFS = "flow_storage_prefs"
-    private const val STORAGE_PERMISSION_ASKED = "storage_permission_asked"
-
     /**
-     * Asks once for MANAGE_EXTERNAL_STORAGE on Android 11+. Optional: downloads still work without
-     * it because VideoDownloadManager falls back to app-private storage.
+     * Storage permission check: app uses app-private and MediaStore storage, avoiding high-risk
+     * permissions so Play Protect does not flag the app.
      */
     fun promptStoragePermissionIfNeeded(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()) return
-        val prefs = context.getSharedPreferences(STORAGE_PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(STORAGE_PERMISSION_ASKED, false)) return
-        prefs.edit { putBoolean(STORAGE_PERMISSION_ASKED, true) }
-        Toast.makeText(context, context.getString(R.string.download_storage_access_prompt), Toast.LENGTH_LONG).show()
-        if (context !is Activity) return
-        try {
-            context.startActivity(
-                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                    data = "package:${context.packageName}".toUri()
-                },
-            )
-        } catch (_: Exception) {
-            try {
-                context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-            } catch (_: Exception) {
-            }
-        }
+        // App-private and scoped MediaStore storage used directly without high-risk MANAGE_EXTERNAL_STORAGE
     }
 
     /**

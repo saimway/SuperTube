@@ -1,0 +1,23 @@
+SUPERTUBE CHANGE LOG
+VERSION: 3.0.5
+DATE: 2026-11-06
+STATUS: release
+
+HIGHLIGHTS
+- Play Protect & installation fix: removed high-risk MANAGE_EXTERNAL_STORAGE permission to eliminate Play Protect scan requirements
+- Zero pop ads inside movie player: enhanced anti-ad engine blocking popup windows, redirect clicks, invisible trap overlays, and intrusive banners
+- All repository links removed: completely eliminated GitHub release links and buttons from update and changelog screens
+- Seamless movie playback: smooth seeking without white screens or freezes, plus automatic resume memory per title
+
+MOVIES & ANTI-AD SHIELD
+- Hardened main-frame & subframe navigation lockdown: strictly confines the player to verified movie streaming providers, dropping external ad redirects instantly
+- Defused popup & window APIs: blocked window.open, popunders, alerts, confirms, and synthetic clicks abused by streaming embeds
+- Real-time overlay & banner remover: continuous DOM observer instantly purging click-trap layers and floating ad banners
+- Comprehensive ad-server blocklist: expanded filters covering 60+ ad networks and tracker scripts
+- Pure black player canvas: eliminates white screen flashes during seek, server switch, and buffering
+- Smart playback resume: remembers exact playback second and working server per title
+
+SECURITY & INTERFACE
+- High-risk permission cleanup: removed MANAGE_EXTERNAL_STORAGE to ensure safe, warning-free installations
+- Clean update interface: removed external repository links from Changelog and Update views
+- Multi-scheme release signing with genuine certificate for Android Package Manager compatibility
