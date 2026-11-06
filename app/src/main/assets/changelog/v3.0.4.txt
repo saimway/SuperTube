@@ -1,0 +1,22 @@
+SUPERTUBE CHANGE LOG
+VERSION: 3.0.4
+DATE: 2026-11-06
+STATUS: release
+
+HIGHLIGHTS
+- Play Protect & installation fix: release APK signed with official certificate across v1, v2, and v3 schemes, eliminating "Scan required by Play Protect" prompts and install failures
+- Zero pop ads inside movie player: comprehensive 5-layer ad-blocking sandbox preventing popup windows, ad redirects, invisible click-trap overlays, and intrusive banners
+- Seamless movie playback: smooth seeking without white screens or freezes, plus automatic resume memory per title
+- Reliable in-app updater: one-tap in-app update checks and downloads with matched signatures
+
+MOVIES & ANTI-AD SHIELD
+- Hardened main-frame navigation lockdown: strictly confines the player to verified movie streaming providers, instantly dropping external ad redirects before they can load inside the player
+- Defused popup & window APIs: blocked window.open, popunders, alert, confirm, and prompt dialogs commonly abused by streaming embeds
+- Real-time overlay remover: continuously purges full-screen invisible click-jack layers and floating ad banners
+- Expanded ad-blocking filters: expanded blocklist covering popads, propellerads, exoclick, adsterra, and tracking scripts
+- Pure black player canvas: eliminates white screen flashes during seek, server switch, and buffering
+- Smart playback resume: remembers exact playback second and working server per title
+
+SECURITY & MAINTENANCE
+- Release signing updated with v1, v2, and v3 signature schemes for maximum Android Package Manager compatibility
+- Streamlined update interface with direct download and version skip controls

@@ -57,8 +57,8 @@ android {
         applicationId = "com.supertube"
         minSdk = 26
         targetSdk = 36
-        versionCode = 22
-        versionName = "3.0.3"
+        versionCode = 23
+        versionName = "3.0.4"
 
         buildConfigField("int", "NIGHTLY_RUN", "0")
         buildConfigField("String", "APP_LANGUAGE_TAGS", "\"${(listOf("en") + translatedLocaleTags()).joinToString(",")}\"")
@@ -130,17 +130,22 @@ android {
             storePassword = (project.findProperty("storePassword") as? String)?.takeIf { it.isNotBlank() }
                 ?: localProperties.getProperty("storePassword")?.takeIf { it.isNotBlank() }
                 ?: envStorePass
-                ?: (if (useOfficialRelease) "" else "android")
+                ?: (if (useOfficialRelease) "" else "supertube")
 
             keyAlias = (project.findProperty("keyAlias") as? String)?.takeIf { it.isNotBlank() }
                 ?: localProperties.getProperty("keyAlias")?.takeIf { it.isNotBlank() }
                 ?: envKeyAlias
-                ?: (if (useOfficialRelease) "" else "androiddebugkey")
+                ?: (if (useOfficialRelease) "" else "supertube")
 
             keyPassword = (project.findProperty("keyPassword") as? String)?.takeIf { it.isNotBlank() }
                 ?: localProperties.getProperty("keyPassword")?.takeIf { it.isNotBlank() }
                 ?: envKeyPass
-                ?: (if (useOfficialRelease) "" else "android")
+                ?: (if (useOfficialRelease) "" else "supertube")
+
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = false
         }
         // One long-lived key for every nightly, so each build installs over the last one.
         create("nightly") {
@@ -155,15 +160,20 @@ android {
 
             storePassword = envNightlyStorePass
                 ?: localProperties.getProperty("nightlyStorePassword")?.takeIf { it.isNotBlank() }
-                ?: (if (useOfficialNightly) "" else "android")
+                ?: (if (useOfficialNightly) "" else "supertube")
 
             keyAlias = envNightlyKeyAlias
                 ?: localProperties.getProperty("nightlyKeyAlias")?.takeIf { it.isNotBlank() }
-                ?: (if (useOfficialNightly) "" else "androiddebugkey")
+                ?: (if (useOfficialNightly) "" else "supertube")
 
             keyPassword = envNightlyKeyPass
                 ?: localProperties.getProperty("nightlyKeyPassword")?.takeIf { it.isNotBlank() }
-                ?: (if (useOfficialNightly) "" else "android")
+                ?: (if (useOfficialNightly) "" else "supertube")
+
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = false
         }
     }
 

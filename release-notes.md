@@ -1,25 +1,24 @@
-# SuperTube v3.0.3
+# SuperTube v3.0.4
 
-SuperTube v3.0.3 brings major streaming stability improvements, seamless movie playback resuming without white screen interruptions, verified update signing for zero-friction in-app updates, and interface refinements.
+SuperTube v3.0.4 introduces a hardened anti-pop-ad engine for movies, full multi-scheme release signing compliance to eliminate Play Protect scan requirements, and continuous playback stability.
 
 ## Highlights
 
-- Seamless in-app package updates: matching release certificates ensure one-tap updates over existing installs without suspicious package warnings or signature mismatch errors.
-- Movie playback resume: movies now remember your exact progress and last working server, offering instant "Resume" or "Play from beginning" options.
-- Zero white screens during seek: fixed video buffer abortions and subresource loading so movie scrubbing and seeking play continuously without going white or freezing.
-- Clean update screen: simplified the update interface and updated changelogs.
+- Play Protect & installation fix: release APK is signed with the official release certificate across v1 (JAR), v2, and v3 schemes, eliminating "Scan required by Play Protect" prompts and install failures.
+- Zero pop ads inside movie player: comprehensive 5-layer ad-blocking sandbox preventing popup windows, ad redirects, invisible click-trap overlays, and intrusive banners.
+- Seamless movie playback: smooth seeking without white screens or freezes, plus automatic resume memory per title.
+- Reliable in-app updater: one-tap in-app update checks and downloads with matched signatures.
 
-## Movie Playback & Streaming
+## Movie Playback & Anti-Ad Shield
 
-- Fixed seek cancellations (`ERR_ABORTED`) being erroneously treated as server failures, eliminating white screen stalls when scrubbing movies.
-- Enforced hardware black canvas background on the movie player so seeking and buffering transitions remain completely seamless.
-- Intelligent playback persistence: stores playback timestamp and confirmed working server per movie.
-- Single persistent player instance: entering and exiting fullscreen landscape mode preserves the active stream without reloading or stuttering.
-- Multi-server fallback engine: automatically cycles through all available streaming servers with instant failover if any mirror is unavailable.
-- Ad-blocking sandbox: blocks video-overlay ads, redirect popunders, and trackers while permitting all genuine video segments and subtitle streams.
+- Hardened main-frame navigation lockdown: strictly confines the player to verified movie streaming providers, instantly dropping external ad redirects before they can load inside the player.
+- Defused popup & window APIs: blocked `window.open`, popunders, `alert`, `confirm`, and `prompt` dialogs commonly abused by streaming embeds.
+- Real-time overlay remover: continuously purges full-screen invisible click-jack layers (`z-index: 999999`) and floating ad banners.
+- Expanded ad-blocking filters: expanded blocklist covering popads, propellerads, exoclick, adsterra, and tracking scripts.
+- Pure black player canvas: eliminates white screen flashes during seek, server switch, and buffering.
+- Smart playback resume: remembers exact playback second and working server per title.
 
-## In-App Updates & Maintenance
+## Security & Maintenance
 
-- Release signing certificate aligned with the installed app fingerprint to guarantee standard Android package manager upgrade compatibility.
-- Streamlined update menu to focus on version skipping and updates.
-- Refreshed in-app update notes parser for clearer release summaries.
+- Release signing updated with v1, v2, and v3 signature schemes for maximum Android Package Manager compatibility.
+- Streamlined update interface with direct download and version skip controls.

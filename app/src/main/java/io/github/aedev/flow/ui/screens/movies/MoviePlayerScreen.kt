@@ -5,10 +5,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
+import android.os.Message
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -104,10 +107,48 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
+private val ALLOWED_STREAMING_DOMAINS = setOf(
+    "zxcstream.cc",
+    "vidlink.pro",
+    "player.videasy.net",
+    "videasy.net",
+    "vidfast.pro",
+    "vidrock.to",
+    "moviesapi.to",
+    "player.vidzee.wtf",
+    "vidzee.wtf",
+    "vidnest.fun",
+    "vidup.to",
+    "vsembed.ru",
+    "vidcore.net",
+    "embed.smashystream.com",
+    "smashystream.com",
+    "tmdb.org",
+    "vidsrc.to",
+    "vidsrc.me",
+    "vidsrc.pm",
+    "vidsrc.net",
+    "2embed.cc",
+    "autoembed.cc",
+    "superembed.stream",
+    "multiembed.mov",
+    "rabbitstream.net",
+    "megacloud.tv",
+    "cloudstream.to",
+)
+
+private fun isAllowedStreamingHost(host: String): Boolean {
+    if (host.isBlank()) return false
+    return ALLOWED_STREAMING_DOMAINS.any { allowed ->
+        host.equals(allowed, ignoreCase = true) || host.endsWith(".$allowed", ignoreCase = true)
+    }
+}
+
 private val BLOCKED_AD_HOSTS = setOf(
     "aarems.org",
     "doubleclick.net",
     "adservice.google.com",
+    "googlesyndication.com",
     "popads.net",
     "popcash.net",
     "propellerads.com",
@@ -122,6 +163,29 @@ private val BLOCKED_AD_HOSTS = setOf(
     "topcreativeformat.com",
     "highperformancegate.com",
     "coinhive.com",
+    "adkeeper.co",
+    "adtrue.com",
+    "yadro.ru",
+    "marketgid.com",
+    "mgid.com",
+    "hilltopads.com",
+    "clickadu.com",
+    "richpush.co",
+    "evadav.com",
+    "pushassist.com",
+    "monetag.com",
+    "ad-maven.com",
+    "zeroredirect.com",
+    "trafficfactory.biz",
+    "trafficjunky.com",
+    "rtbmark.com",
+    "adnxs.com",
+    "criteo.com",
+    "taboola.com",
+    "outbrain.com",
+    "serving-sys.com",
+    "yllix.com",
+    "bidvertiser.com",
 )
 
 private val BLOCKED_URL_PATTERNS = listOf(
@@ -136,6 +200,14 @@ private val BLOCKED_URL_PATTERNS = listOf(
     "adnxs",
     "adroll",
     "beacon.js",
+    "adservice",
+    "adserver",
+    "popup.js",
+    "popunder.js",
+    "/vast",
+    "/vpaid",
+    "prebid",
+    "openx",
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1202,6 +1274,22 @@ private fun createSandboxedWebView(
         )
 
         webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                // Disarm popups immediately at start before third-party ad scripts execute
+                val disarmJs = """
+                    (function() {
+                        try {
+                            window.open = function() { return null; };
+                            window.alert = function() {};
+                            window.confirm = function() { return false; };
+                            window.prompt = function() { return null; };
+                        } catch(e) {}
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(disarmJs, null)
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url ?: return false
                 val urlString = url.toString()
@@ -1212,11 +1300,19 @@ private fun createSandboxedWebView(
                     return true
                 }
 
-                // Block ad domains and redirect loops
                 val host = url.host?.lowercase().orEmpty()
+
+                // Main frame navigation protection: NEVER let an ad redirect navigate the player away from streaming
+                if (request?.isForMainFrame == true) {
+                    if (!isAllowedStreamingHost(host) && urlString != "about:blank") {
+                        // Drop ad navigation completely, preserving the active video player
+                        return true
+                    }
+                }
+
+                // Block known ad domains and ad URL patterns
                 val isBlockedHost = BLOCKED_AD_HOSTS.any { host.contains(it) }
                 val isBlockedPattern = BLOCKED_URL_PATTERNS.any { urlString.contains(it, ignoreCase = true) }
-
                 if (isBlockedHost || isBlockedPattern) {
                     return true
                 }
@@ -1243,12 +1339,49 @@ private fun createSandboxedWebView(
                 super.onPageFinished(view, url)
                 onPageLoaded()
 
-                // Inject player event listener to detect when HTML5 video actually plays and track position
+                // Inject ad neutralizing script and player event listener to detect when HTML5 video actually plays and track position
                 val seekInit = if (savedPositionSeconds > 10) "var savedTime = $savedPositionSeconds;" else "var savedTime = 0;"
                 val js = """
                     (function() {
                         $seekInit
                         var hasResumed = false;
+
+                        // Disarm popups and alerts
+                        try {
+                            window.open = function() { return null; };
+                            window.alert = function() {};
+                            window.confirm = function() { return false; };
+                            window.prompt = function() { return null; };
+                        } catch(e) {}
+
+                        // Remove click-jack overlay divs and ad banners
+                        var removeAdElements = function() {
+                            var selectors = [
+                                'div[id*="ad-"]', 'div[class*="ad-"]',
+                                'div[id*="banner"]', 'div[class*="banner"]',
+                                'div[id*="pop"]', 'div[class*="pop"]',
+                                'iframe[src*="ad"]', 'iframe[src*="banner"]',
+                                'iframe[src*="pop"]',
+                                'div[style*="z-index: 2147483647"]',
+                                'div[style*="z-index: 999999"]', 'div[style*="z-index:999999"]',
+                                'div[style*="z-index: 100000"]', 'div[style*="z-index:100000"]',
+                                'div[style*="z-index: 99999"]', 'div[style*="z-index:99999"]'
+                            ];
+                            selectors.forEach(function(s) {
+                                try {
+                                    var els = document.querySelectorAll(s);
+                                    for (var i = 0; i < els.length; i++) {
+                                        var el = els[i];
+                                        if (el.tagName !== 'VIDEO' && !el.querySelector('video') && !el.classList.contains('jwplayer') && !el.classList.contains('plyr')) {
+                                            el.remove();
+                                        }
+                                    }
+                                } catch(e) {}
+                            });
+                        };
+                        removeAdElements();
+                        setInterval(removeAdElements, 800);
+
                         window.addEventListener('message', function(e) {
                             try {
                                 var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
@@ -1328,6 +1461,31 @@ private fun createSandboxedWebView(
         }
 
         webChromeClient = object : WebChromeClient() {
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?,
+            ): Boolean {
+                // Reject all popups, popunders, and new tab requests created by embed ads
+                return false
+            }
+
+            override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                result?.cancel()
+                return true
+            }
+
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                result?.cancel()
+                return true
+            }
+
+            override fun onJsPrompt(view: WebView?, url: String?, message: String?, defaultValue: String?, result: JsPromptResult?): Boolean {
+                result?.cancel()
+                return true
+            }
+
             override fun getDefaultVideoPoster(): Bitmap? {
                 return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
             }
