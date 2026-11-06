@@ -1,0 +1,19 @@
+SUPERTUBE CHANGE LOG
+VERSION: 3.0.2
+DATE: 2026-11-06
+STATUS: release
+
+HIGHLIGHTS
+- Fix white screen issue during movie playback and seeking
+- Remember playback progress and last working streaming server per movie
+- Seamless resume playback when re-opening a movie with "Resume" and "Play from start" options
+- Seamless in-app package updates without suspicious app warnings
+- Certified release signing key restored matching official release fingerprint
+
+MOVIES & PLAYBACK
+- Eliminate WebView white flashes by forcing true black hardware background
+- Fix seek cancellations and transient buffer aborts being erroneously caught as fatal server errors
+- Prevent duplicate WebView destruction and reloading when toggling fullscreen mode
+- Auto-resume movie playback to exact second when returning to a movie
+- Display interactive "Resumed from MM:SS" badge with instant restart option
+- Persist confirmed working servers so movies open immediately on the working server

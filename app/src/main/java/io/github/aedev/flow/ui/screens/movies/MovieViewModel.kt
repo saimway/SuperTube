@@ -302,6 +302,10 @@ class MovieViewModel @Inject constructor(
     }
 
     fun loadMovieDetail(movieId: Long, forceRefresh: Boolean = false) {
+        val current = _detailState.value
+        if (!forceRefresh && current.detail?.id == movieId) {
+            return
+        }
         detailJob?.cancel()
         _detailState.value = MovieDetailUiState(isLoading = true, selectedServer = _selectedServer.value)
 

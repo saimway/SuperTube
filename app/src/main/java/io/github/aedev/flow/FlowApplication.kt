@@ -121,6 +121,7 @@ class FlowApplication :
         ProfileWebView.applySuffix(this)
         super.onCreate()
         appContext = applicationContext
+        io.github.aedev.flow.data.movie.MoviePlaybackManager.init(this)
         linkedForeground.install()
         YouTube.cacheDirectory = cacheDir.resolve("innertube_http_cache")
 

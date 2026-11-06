@@ -164,6 +164,9 @@ fun MovieHeroSection(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val savedRecord = remember(movie.id) { io.github.aedev.flow.data.movie.MoviePlaybackManager.getProgress(movie.id) }
+                val hasResume = savedRecord != null && savedRecord.positionSeconds > 10
+
                 Button(
                     onClick = onPlayClick,
                     shape = MaterialTheme.shapes.small,
@@ -179,7 +182,7 @@ fun MovieHeroSection(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.movie_hero_play),
+                        text = if (hasResume) "Resume (${savedRecord!!.formattedPosition})" else stringResource(R.string.movie_hero_play),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                     )

@@ -35,6 +35,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -79,6 +80,11 @@ fun MovieDetailScreen(
         onDispose {
             viewModel.cancelDetailFetch()
         }
+    }
+
+    LaunchedEffect(movieId) {
+        val workingServer = io.github.aedev.flow.data.movie.MoviePlaybackManager.getSavedServer(movieId)
+        viewModel.selectServer(workingServer)
     }
 
     val detailState by viewModel.detailState.collectAsStateWithLifecycle()
@@ -354,6 +360,9 @@ private fun MovieDetailContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                val savedRecord = remember(movie.id) { io.github.aedev.flow.data.movie.MoviePlaybackManager.getProgress(movie.id) }
+                val hasResume = savedRecord != null && savedRecord.positionSeconds > 10
+
                 // Big Primary Play Button
                 Button(
                     onClick = onPlayClick,
@@ -373,10 +382,31 @@ private fun MovieDetailContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.movie_hero_play) + " (${selectedServer.name})",
+                        text = if (hasResume) "Resume from ${savedRecord!!.formattedPosition} (${selectedServer.name})"
+                               else stringResource(R.string.movie_hero_play) + " (${selectedServer.name})",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                }
+
+                if (hasResume) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            io.github.aedev.flow.data.movie.MoviePlaybackManager.clearProgress(movie.id)
+                            onPlayClick()
+                        },
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = "Play from beginning",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
+                }
                 }
 
                 // Overview / Synopsis
