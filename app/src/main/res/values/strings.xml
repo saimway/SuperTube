@@ -4243,7 +4243,7 @@
     <string name="donation_currency_solana" translatable="false">Solana</string>
     <string name="donation_currency_usdt" translatable="false">USDT (TRC-20)</string>
     <string name="donation_currency_monero" translatable="false">Monero</string>
-    <string name="settings_keywords_about">version, license, open source, github, reddit, contact, changelog</string>
+    <string name="settings_keywords_about">version, license, open source, reddit, contact, changelog</string>
     <string name="settings_changelog_version">Version %1$s</string>
     <string name="settings_changelog_installed">Installed</string>
     <string name="settings_changelog_prerelease">Pre-release</string>

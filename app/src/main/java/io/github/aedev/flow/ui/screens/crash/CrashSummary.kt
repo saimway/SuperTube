@@ -4,7 +4,7 @@ import java.net.URLEncoder
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-private const val NEW_ISSUE_URL = "https://github.com/saimway/SuperTube/issues/new"
+private const val NEW_ISSUE_URL = ""
 private const val APP_PACKAGE = "io.github.aedev.flow"
 private const val MAX_URL_LOG_CHARS = 1_500
 private const val MAX_URL_ACTUAL_CHARS = 300
@@ -74,7 +74,8 @@ fun parseCrashSummary(report: String): CrashSummary {
  * The required text fields are answered from the crash itself, so someone who cannot say how it
  * happened can still send it in one tap and edit only what they know (#1189).
  */
-fun CrashSummary.issueUrl(): String {
+fun CrashSummary.issueUrl(baseUrl: String = NEW_ISSUE_URL): String {
+    if (baseUrl.isBlank()) return ""
     val title = "[Bug]: $headline" + (location?.let { " in $it" } ?: "")
     val error = exception + (message?.let { ": $it" } ?: "")
     val log =
@@ -94,6 +95,6 @@ fun CrashSummary.issueUrl(): String {
             "actual" to "Flow crashed with $error".take(MAX_URL_ACTUAL_CHARS),
             "logs" to log,
         )
-    return NEW_ISSUE_URL + "?" +
+    return baseUrl + "?" +
         fields.joinToString("&") { (key, value) -> "$key=${URLEncoder.encode(value, Charsets.UTF_8.name()).replace("+", "%20")}" }
 }

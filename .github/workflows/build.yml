@@ -91,7 +91,8 @@ jobs:
           if [ -n "$apksigner" ]; then
             actual=$("$apksigner" verify --print-certs dist/supertube.apk | grep -m1 'certificate SHA-256 digest' | awk '{print $NF}')
             if [ "$actual" != "$EXPECTED_SIGNER_SHA256" ]; then
-              echo "::warning::APK signed with '$actual', expected '$EXPECTED_SIGNER_SHA256'"
+              echo "::error::APK signed with '$actual', expected '$EXPECTED_SIGNER_SHA256'"
+              exit 1
             else
               echo "OK supertube.apk verified with SHA256: $actual"
             fi

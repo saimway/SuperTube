@@ -40,12 +40,18 @@ class CrashSummaryTest {
     }
 
     @Test
-    fun `the issue link fills the bug form fields by id`() {
+    fun `the issue link is empty when NEW_ISSUE_URL is neutralized`() {
         val url = parseCrashSummary(report).issueUrl()
+        assertThat(url).isEmpty()
+    }
+
+    @Test
+    fun `the issue link fills the bug form fields by id`() {
+        val url = parseCrashSummary(report).issueUrl(baseUrl = "https://example.com/issues/new")
 
         assertThat(
             url,
-        ).startsWith("https://github.com/saimway/SuperTube/issues/new?template=bug_report.yml&title=%5BBug%5D%3A%20IllegalArgumentException")
+        ).startsWith("https://example.com/issues/new?template=bug_report.yml&title=%5BBug%5D%3A%20IllegalArgumentException")
         assertThat(url).contains("&app-version=2.2.5&")
         assertThat(url).contains("&android-version=16%20%28SDK%2036%29&")
         assertThat(url).contains("&device=Xiaomi%2023049PCD8G&")
@@ -54,7 +60,7 @@ class CrashSummaryTest {
 
     @Test
     fun `the link answers every required text field, so a crash can be sent without a questionnaire (1189)`() {
-        val url = parseCrashSummary(report).issueUrl()
+        val url = parseCrashSummary(report).issueUrl(baseUrl = "https://example.com/issues/new")
 
         assertThat(url).contains("&steps=Not%20known.")
         assertThat(url).contains("&expected=Flow%20keeps%20running.")
@@ -94,7 +100,7 @@ class CrashSummaryTest {
         assertThat(summary.exception).isEqualTo("RuntimeException")
         assertThat(summary.headline).isEqualTo("TransactionTooLargeException")
         assertThat(
-            summary.issueUrl(),
+            summary.issueUrl(baseUrl = "https://example.com/issues/new"),
         ).contains("title=%5BBug%5D%3A%20TransactionTooLargeException%20in%20PendingTransactionActions.java%3A146")
     }
 

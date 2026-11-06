@@ -103,7 +103,10 @@ fun CrashReportScreen(
                         onClick = {
                             copy()
                             scope.launch { snackbar.showSnackbar(copiedMessage) }
-                            uriHandler.openUri(summary.issueUrl())
+                            val issueUrl = summary.issueUrl()
+                            if (issueUrl.isNotBlank()) {
+                                runCatching { uriHandler.openUri(issueUrl) }
+                            }
                         },
                         shapes = ButtonDefaults.shapesFor(ButtonDefaults.MediumContainerHeight),
                         contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight, hasStartIcon = true),
