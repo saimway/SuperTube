@@ -29,7 +29,7 @@ This project enhances:
 |---|------|-------|-------------|--------|
 | 1 | M1: Engine Intent & Craving Adaptation | `FlowNeuroEngine`, `NeuroScoring`, `NeuroDiscovery`, `HomeFeedMixer`, `ShortsFeedQuotas` | none | DONE |
 | 2 | M2: Negative Feedback Storage, Filtering & UI | `DismissedVideoStore`, `FlowNeuroEngine`, `VideoFeedbackUseCase`, `QuickActionsViewModel`, `ShortsViewModel`, `strings.xml` | M1 | DONE |
-| 3 | M3: CI Verification & Private Delivery | Git push to `main`, GitHub Actions workflow monitor, APK download to `/storage/emulated/0/supertube.apk` | M2 | IN_PROGRESS |
+| 3 | M3: CI Verification & Private Delivery | Git push to `main`, GitHub Actions workflow monitor, APK download to `/storage/emulated/0/supertube.apk` | M2 | DONE |
 
 ## Interface Contracts
 ### `FlowNeuroEngine` ↔ `HomeFeedMixer` & `ShortsFeedQuotas`
