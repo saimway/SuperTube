@@ -6,8 +6,12 @@ import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
+@Serializable
 enum class MediaType {
     MOVIE,
     TV,
@@ -32,6 +36,7 @@ data class MoviePlaybackRecord(
         get() = if (durationSeconds > 0) (positionSeconds.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f) else 0f
 }
 
+@Serializable
 data class LastWatchedMedia(
     val mediaId: Long,
     val mediaType: MediaType,
@@ -85,6 +90,13 @@ object MoviePlaybackManager {
     private const val KEY_LAST_DUR = "last_media_dur"
     private const val KEY_LAST_TIME = "last_media_time"
 
+    // Recently Watched Shelves Keys
+    private const val KEY_RECENT_MOVIES = "recent_movies_json"
+    private const val KEY_RECENT_TV = "recent_tv_json"
+    private const val MAX_RECENT_ITEMS = 20
+
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
     private val movieCache = ConcurrentHashMap<Long, MoviePlaybackRecord>()
     private val tvCache = ConcurrentHashMap<String, MoviePlaybackRecord>()
     @Volatile
@@ -94,12 +106,35 @@ object MoviePlaybackManager {
     private val _lastWatchedFlow = MutableStateFlow<LastWatchedMedia?>(null)
     val lastWatchedFlow: StateFlow<LastWatchedMedia?> = _lastWatchedFlow.asStateFlow()
 
+    private val _recentMoviesFlow = MutableStateFlow<List<LastWatchedMedia>>(emptyList())
+    val recentMoviesFlow: StateFlow<List<LastWatchedMedia>> = _recentMoviesFlow.asStateFlow()
+
+    private val _recentTvFlow = MutableStateFlow<List<LastWatchedMedia>>(emptyList())
+    val recentTvFlow: StateFlow<List<LastWatchedMedia>> = _recentTvFlow.asStateFlow()
+
     private fun tvKey(tvId: Long, season: Int, episode: Int): String = "${tvId}_s${season}_e$episode"
 
     fun init(context: Context) {
         if (prefs == null) {
             prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             _lastWatchedFlow.value = getLastWatched()
+            _recentMoviesFlow.value = loadRecentMedia(KEY_RECENT_MOVIES)
+            _recentTvFlow.value = loadRecentMedia(KEY_RECENT_TV)
+        }
+    }
+
+    private fun loadRecentMedia(key: String): List<LastWatchedMedia> {
+        val p = prefs ?: return emptyList()
+        val rawJson = p.getString(key, null) ?: return emptyList()
+        return runCatching {
+            json.decodeFromString<List<LastWatchedMedia>>(rawJson)
+        }.getOrElse { emptyList() }
+    }
+
+    private fun saveRecentMediaList(key: String, list: List<LastWatchedMedia>) {
+        val serialized = json.encodeToString(list)
+        prefs?.edit {
+            putString(key, serialized)
         }
     }
 
@@ -230,19 +265,25 @@ object MoviePlaybackManager {
         }
 
         if (effectiveTitle.isNotBlank() || existingLast?.mediaId == movieId) {
-            saveLastWatched(
-                LastWatchedMedia(
-                    mediaId = movieId,
-                    mediaType = MediaType.MOVIE,
-                    title = effectiveTitle,
-                    posterUrl = posterUrl ?: existingLast?.posterUrl,
-                    backdropUrl = backdropUrl ?: existingLast?.backdropUrl,
-                    serverId = serverId,
-                    positionSeconds = positionSeconds,
-                    durationSeconds = durationSeconds,
-                    timestamp = record.timestamp,
-                ),
+            val recordItem = LastWatchedMedia(
+                mediaId = movieId,
+                mediaType = MediaType.MOVIE,
+                title = effectiveTitle,
+                posterUrl = posterUrl ?: existingLast?.posterUrl,
+                backdropUrl = backdropUrl ?: existingLast?.backdropUrl,
+                serverId = serverId,
+                positionSeconds = positionSeconds,
+                durationSeconds = durationSeconds,
+                timestamp = record.timestamp,
             )
+            saveLastWatched(recordItem)
+
+            val currentRecent = _recentMoviesFlow.value.toMutableList()
+            currentRecent.removeAll { it.mediaId == movieId }
+            currentRecent.add(0, recordItem)
+            val trimmed = currentRecent.take(MAX_RECENT_ITEMS)
+            _recentMoviesFlow.value = trimmed
+            saveRecentMediaList(KEY_RECENT_MOVIES, trimmed)
         }
     }
 
@@ -276,6 +317,11 @@ object MoviePlaybackManager {
             remove(KEY_PREFIX_DUR + movieId)
             remove(KEY_PREFIX_SRV + movieId)
             remove(KEY_PREFIX_TIME + movieId)
+        }
+        val currentRecent = _recentMoviesFlow.value.toMutableList()
+        if (currentRecent.removeAll { it.mediaId == movieId }) {
+            _recentMoviesFlow.value = currentRecent
+            saveRecentMediaList(KEY_RECENT_MOVIES, currentRecent)
         }
         if (lastWatchedCache?.mediaId == movieId && lastWatchedCache?.mediaType == MediaType.MOVIE) {
             clearLastWatched()
@@ -324,22 +370,30 @@ object MoviePlaybackManager {
             ""
         }
 
-        saveLastWatched(
-            LastWatchedMedia(
-                mediaId = tvId,
-                mediaType = MediaType.TV,
-                title = effectiveTitle,
-                posterUrl = posterUrl ?: existingLast?.posterUrl,
-                backdropUrl = backdropUrl ?: existingLast?.backdropUrl,
-                seasonNumber = seasonNumber,
-                episodeNumber = episodeNumber,
-                episodeTitle = episodeTitle,
-                serverId = serverId,
-                positionSeconds = positionSeconds,
-                durationSeconds = durationSeconds,
-                timestamp = record.timestamp,
-            ),
+        val recordItem = LastWatchedMedia(
+            mediaId = tvId,
+            mediaType = MediaType.TV,
+            title = effectiveTitle,
+            posterUrl = posterUrl ?: existingLast?.posterUrl,
+            backdropUrl = backdropUrl ?: existingLast?.backdropUrl,
+            seasonNumber = seasonNumber,
+            episodeNumber = episodeNumber,
+            episodeTitle = episodeTitle,
+            serverId = serverId,
+            positionSeconds = positionSeconds,
+            durationSeconds = durationSeconds,
+            timestamp = record.timestamp,
         )
+        saveLastWatched(recordItem)
+
+        if (effectiveTitle.isNotBlank() || posterUrl != null) {
+            val currentRecent = _recentTvFlow.value.toMutableList()
+            currentRecent.removeAll { it.mediaId == tvId }
+            currentRecent.add(0, recordItem)
+            val trimmed = currentRecent.take(MAX_RECENT_ITEMS)
+            _recentTvFlow.value = trimmed
+            saveRecentMediaList(KEY_RECENT_TV, trimmed)
+        }
     }
 
     fun getTvProgress(tvId: Long, seasonNumber: Int, episodeNumber: Int): MoviePlaybackRecord? {
@@ -375,6 +429,11 @@ object MoviePlaybackManager {
             remove(KEY_PREFIX_TV_DUR + key)
             remove(KEY_PREFIX_TV_SRV + key)
             remove(KEY_PREFIX_TV_TIME + key)
+        }
+        val currentRecent = _recentTvFlow.value.toMutableList()
+        if (currentRecent.removeAll { it.mediaId == tvId && it.seasonNumber == seasonNumber && it.episodeNumber == episodeNumber }) {
+            _recentTvFlow.value = currentRecent
+            saveRecentMediaList(KEY_RECENT_TV, currentRecent)
         }
         if (lastWatchedCache?.mediaId == tvId &&
             lastWatchedCache?.mediaType == MediaType.TV &&

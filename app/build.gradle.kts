@@ -57,7 +57,7 @@ android {
         applicationId = "com.supertube"
         minSdk = 26
         targetSdk = 36
-        versionCode = 24
+        versionCode = 25
         versionName = "3.0.5"
 
         buildConfigField("int", "NIGHTLY_RUN", "0")

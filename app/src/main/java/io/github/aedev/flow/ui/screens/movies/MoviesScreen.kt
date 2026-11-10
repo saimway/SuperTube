@@ -41,31 +41,26 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.aedev.flow.R
-import io.github.aedev.flow.data.movie.LastWatchedMedia
-import io.github.aedev.flow.data.movie.MediaType
 import io.github.aedev.flow.data.movie.MovieGenre
 import io.github.aedev.flow.data.movie.MoviePlaybackManager
 import io.github.aedev.flow.ui.components.layout.LocalFlowBottomInsets
 import io.github.aedev.flow.ui.components.layout.topbar.FlowGlobalActionsMode
 import io.github.aedev.flow.ui.components.layout.topbar.FlowTopBar
-import io.github.aedev.flow.ui.screens.movies.components.ContinueWatchingBanner
 import io.github.aedev.flow.ui.screens.movies.components.MovieCard
 import io.github.aedev.flow.ui.screens.movies.components.MovieCardSkeleton
 import io.github.aedev.flow.ui.screens.movies.components.MovieHeroSection
 import io.github.aedev.flow.ui.screens.movies.components.MovieShelfRow
+import io.github.aedev.flow.ui.screens.movies.components.RecentlyWatchedShelfRow
 import io.github.aedev.flow.ui.screens.movies.components.TvCard
 import io.github.aedev.flow.ui.screens.movies.components.TvHeroSection
 import io.github.aedev.flow.ui.screens.movies.components.TvShelfRow
@@ -84,16 +79,8 @@ fun MoviesScreen(
     modifier: Modifier = Modifier,
 ) {
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
-    var lastWatched by remember { mutableStateOf<LastWatchedMedia?>(null) }
-
-    LifecycleResumeEffect(Unit) {
-        lastWatched = MoviePlaybackManager.getLastWatched()
-        onPauseOrDispose { }
-    }
-
-    LaunchedEffect(selectedTabIndex) {
-        lastWatched = MoviePlaybackManager.getLastWatched()
-    }
+    val recentMovies by MoviePlaybackManager.recentMoviesFlow.collectAsStateWithLifecycle()
+    val recentTv by MoviePlaybackManager.recentTvFlow.collectAsStateWithLifecycle()
 
     // Strict lazy loading: fetch ONLY when this screen enters composition,
     // and immediately abort all active network calls when user leaves the Movies tab.
@@ -152,25 +139,6 @@ fun MoviesScreen(
                     onClick = { selectedTabIndex = 1 },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     label = { Text(stringResource(R.string.movie_tab_tv_shows)) },
-                )
-            }
-
-            // Continue Watching Banner (Last Watched Media Resume)
-            val currentLastWatched = lastWatched
-            if (currentLastWatched != null && currentLastWatched.positionSeconds > 5) {
-                ContinueWatchingBanner(
-                    lastWatched = currentLastWatched,
-                    onResumeClick = {
-                        if (currentLastWatched.mediaType == MediaType.TV) {
-                            onPlayTv(currentLastWatched.mediaId, currentLastWatched.seasonNumber, currentLastWatched.episodeNumber)
-                        } else {
-                            onPlayMovie(currentLastWatched.mediaId)
-                        }
-                    },
-                    onDismissClick = {
-                        MoviePlaybackManager.clearLastWatched()
-                        lastWatched = null
-                    },
                 )
             }
 
@@ -259,6 +227,16 @@ fun MoviesScreen(
                                                     movie = state.heroMovie,
                                                     onPlayClick = { onPlayMovie(state.heroMovie.id) },
                                                     onDetailsClick = { onMovieClick(state.heroMovie.id) },
+                                                )
+                                            }
+                                        }
+
+                                        if (recentMovies.isNotEmpty()) {
+                                            item(key = "recently_watched_movies_shelf", contentType = "shelf_row") {
+                                                RecentlyWatchedShelfRow(
+                                                    title = stringResource(R.string.movie_shelf_recently_watched),
+                                                    items = recentMovies,
+                                                    onItemClick = { item -> onPlayMovie(item.mediaId) },
                                                 )
                                             }
                                         }
@@ -363,6 +341,16 @@ fun MoviesScreen(
                                                     show = state.heroShow,
                                                     onWatchClick = { onTvClick(state.heroShow.id) },
                                                     onDetailsClick = { onTvClick(state.heroShow.id) },
+                                                )
+                                            }
+                                        }
+
+                                        if (recentTv.isNotEmpty()) {
+                                            item(key = "recently_watched_tv_shelf", contentType = "tv_shelf_row") {
+                                                RecentlyWatchedShelfRow(
+                                                    title = stringResource(R.string.tv_shelf_recently_watched),
+                                                    items = recentTv,
+                                                    onItemClick = { item -> onPlayTv(item.mediaId, item.seasonNumber, item.episodeNumber) },
                                                 )
                                             }
                                         }

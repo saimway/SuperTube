@@ -239,8 +239,16 @@ internal fun assembleHomeFeed(
     var freshAdded = 0
 
     if (onScreenIds.isNotEmpty()) {
-        val freshCandidateCount = lanes.freshCandidates.distinctBy { it.id }.count { it.id !in onScreenIds }
-        if (freshCandidateCount >= targetSize / 2) {
+        val availableCandidatesCount = (
+            lanes.freshCandidates +
+                lanes.bestDiscovery +
+                lanes.bestRelated +
+                lanes.bestMemory +
+                lanes.bestSubs +
+                lanes.bestNeighbours
+        ).distinctBy { it.id }.count { it.id !in onScreenIds }
+
+        if (availableCandidatesCount >= targetSize / 2) {
             usedVideoIds += onScreenIds
         }
     }

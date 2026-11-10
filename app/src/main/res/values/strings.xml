@@ -1268,6 +1268,8 @@
     <string name="movie_tab_movies">Movies</string>
     <string name="movie_tab_tv_shows">TV Shows</string>
     <string name="movie_continue_watching">Continue Watching</string>
+    <string name="movie_shelf_recently_watched">Recently Watched</string>
+    <string name="tv_shelf_recently_watched">Recently Watched</string>
     <string name="movie_resume">Resume</string>
     <string name="movie_resumed_from">Resumed from %1$s</string>
     <string name="movie_restart">Restart</string>

@@ -576,7 +576,12 @@ class HomeViewModel
                         searchPages.reset()
                         // A refresh restarts the discovery tree at its roots (broad pass);
                         // load-more regenerations then dig deeper per cluster.
-                        discoveryQueries.addAll(FlowNeuroEngine.generateDiscoveryQueries(resetDepth = true))
+                        val generatedQueries = FlowNeuroEngine.generateDiscoveryQueries(resetDepth = true)
+                        if (forceRefresh && generatedQueries.size > 3) {
+                            discoveryQueries.addAll(generatedQueries.shuffled())
+                        } else {
+                            discoveryQueries.addAll(generatedQueries)
+                        }
                         currentQueryIndex = 0
 
                         val userSubs = subscriptionScope().boosted
@@ -607,7 +612,7 @@ class HomeViewModel
                                     // ── Related-graph lane: harvest /next neighbours of recent positives ──
                                     val deferredRelated =
                                         async {
-                                            val seedInputs = feedSources.historySeedInputs()
+                                            val seedInputs = if (forceRefresh) feedSources.historySeedInputs().shuffled() else feedSources.historySeedInputs()
                                             val longTermInputs = feedSources.longTermSeedInputs()
                                             val seedIds = FlowNeuroEngine.selectRelatedSeeds(seedInputs, MAX_RELATED_SEEDS, longTermInputs)
                                             feedSources.fetchRelatedGraph(seedInputs + longTermInputs, seedIds, ::cacheFilters)

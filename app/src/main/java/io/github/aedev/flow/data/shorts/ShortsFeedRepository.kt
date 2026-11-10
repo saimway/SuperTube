@@ -60,6 +60,8 @@ class ShortsFeedRepository
         private val lock = Mutex()
         private var pager: ShortsFeedPager? = null
         private var openedAtMillis = 0L
+        @Volatile
+        private var isForcedFresh = false
         private val scope = CoroutineScope(SupervisorJob() + PerformanceDispatcher.diskIO)
 
         val isExhausted: Boolean
@@ -71,12 +73,16 @@ class ShortsFeedRepository
                 FlowNeuroEngine.initialize(context)
                 lock.withLock {
                     val existing = pager
-                    if (seedVideoId == null && existing != null && System.currentTimeMillis() - openedAtMillis < FEED_TTL_MS) {
+                    if (seedVideoId == null && existing != null && !isForcedFresh && System.currentTimeMillis() - openedAtMillis < FEED_TTL_MS) {
                         val page = existing.nextPage()
                         if (page.isNotEmpty()) return@withLock page
                     }
+                    val skipReserve = isForcedFresh
+                    isForcedFresh = false
                     val fresh = ShortsFeedPager(sources, engine, feedContext)
-                    fresh.restoreReserve(loadReserve())
+                    if (!skipReserve) {
+                        fresh.restoreReserve(loadReserve())
+                    }
                     pager = fresh
                     openedAtMillis = System.currentTimeMillis()
                     fresh.open(seedVideoId).also { saveReserve(fresh) }
@@ -107,9 +113,15 @@ class ShortsFeedRepository
             }.onFailure { Log.w(TAG, "Failed to record shown Short $videoId", it) }
         }
 
-        fun clearCaches() {
+        fun clearCaches(clearDiskReserve: Boolean = true) {
             pager = null
             openedAtMillis = 0L
+            isForcedFresh = true
+            if (clearDiskReserve) {
+                scope.launch {
+                    runCatching { homeFeedCache.saveShortsReserve(emptyList()) }
+                }
+            }
         }
 
         /** Drops a channel from every lane pool and from the persisted reserve. */

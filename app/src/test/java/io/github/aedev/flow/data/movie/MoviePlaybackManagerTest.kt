@@ -154,4 +154,43 @@ class MoviePlaybackManagerTest {
         MoviePlaybackManager.clearLastWatched()
         assertThat(MoviePlaybackManager.lastWatchedFlow.value).isNull()
     }
+
+    @Test
+    fun `saveProgress updates recentMoviesFlow with media item at index 0`() {
+        MoviePlaybackManager.saveProgress(
+            movieId = 1001L,
+            serverId = "ember",
+            positionSeconds = 120L,
+            durationSeconds = 7200L,
+            title = "Inception",
+            posterUrl = "/inception.jpg",
+        )
+
+        val recent = MoviePlaybackManager.recentMoviesFlow.value
+        assertThat(recent).isNotEmpty()
+        assertThat(recent.first().mediaId).isEqualTo(1001L)
+        assertThat(recent.first().title).isEqualTo("Inception")
+    }
+
+    @Test
+    fun `saveTvProgress updates recentTvFlow with media item at index 0`() {
+        MoviePlaybackManager.saveTvProgress(
+            tvId = 2001L,
+            seasonNumber = 1,
+            episodeNumber = 2,
+            serverId = "supernova",
+            positionSeconds = 300L,
+            durationSeconds = 3600L,
+            title = "Severance",
+            episodeTitle = "Half Loop",
+            posterUrl = "/severance.jpg",
+        )
+
+        val recent = MoviePlaybackManager.recentTvFlow.value
+        assertThat(recent).isNotEmpty()
+        assertThat(recent.first().mediaId).isEqualTo(2001L)
+        assertThat(recent.first().title).isEqualTo("Severance")
+        assertThat(recent.first().seasonNumber).isEqualTo(1)
+        assertThat(recent.first().episodeNumber).isEqualTo(2)
+    }
 }
