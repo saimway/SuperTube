@@ -186,7 +186,10 @@ class ShortsFeedRepository
                 ): List<Video> = runCatching { FlowNeuroEngine.rank(videos, subscribedChannelIds) }.getOrDefault(videos)
 
                 override suspend fun discoveryQueries(resetDepth: Boolean): List<String> =
-                    runCatching { FlowNeuroEngine.generateDiscoveryQueries(resetDepth) }.getOrDefault(emptyList())
+                    runCatching {
+                        val queries = FlowNeuroEngine.generateDiscoveryQueries(resetDepth)
+                        if (resetDepth) queries.shuffled() else queries
+                    }.getOrDefault(emptyList())
 
                 override suspend fun selectSeeds(
                     candidates: List<ShortsSeedInput>,

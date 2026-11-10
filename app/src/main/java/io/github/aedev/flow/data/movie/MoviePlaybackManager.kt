@@ -443,4 +443,64 @@ object MoviePlaybackManager {
             clearLastWatched()
         }
     }
+
+    fun removeRecentTv(tvId: Long) {
+        val currentRecent = _recentTvFlow.value.toMutableList()
+        val removed = currentRecent.filter { it.mediaId == tvId }
+        if (removed.isNotEmpty()) {
+            prefs?.edit {
+                removed.forEach { item ->
+                    val key = tvKey(item.mediaId, item.seasonNumber, item.episodeNumber)
+                    tvCache.remove(key)
+                    remove(KEY_PREFIX_TV_POS + key)
+                    remove(KEY_PREFIX_TV_DUR + key)
+                    remove(KEY_PREFIX_TV_SRV + key)
+                    remove(KEY_PREFIX_TV_TIME + key)
+                }
+            }
+            currentRecent.removeAll { it.mediaId == tvId }
+            _recentTvFlow.value = currentRecent
+            saveRecentMediaList(KEY_RECENT_TV, currentRecent)
+            if (lastWatchedCache?.mediaId == tvId && lastWatchedCache?.mediaType == MediaType.TV) {
+                clearLastWatched()
+            }
+        }
+    }
+
+    fun clearMovieHistory() {
+        val currentRecent = _recentMoviesFlow.value
+        movieCache.clear()
+        prefs?.edit {
+            currentRecent.forEach { item ->
+                remove(KEY_PREFIX_POS + item.mediaId)
+                remove(KEY_PREFIX_DUR + item.mediaId)
+                remove(KEY_PREFIX_SRV + item.mediaId)
+                remove(KEY_PREFIX_TIME + item.mediaId)
+            }
+            remove(KEY_RECENT_MOVIES)
+        }
+        _recentMoviesFlow.value = emptyList()
+        if (lastWatchedCache?.mediaType == MediaType.MOVIE) {
+            clearLastWatched()
+        }
+    }
+
+    fun clearTvHistory() {
+        val currentRecent = _recentTvFlow.value
+        tvCache.clear()
+        prefs?.edit {
+            currentRecent.forEach { item ->
+                val key = tvKey(item.mediaId, item.seasonNumber, item.episodeNumber)
+                remove(KEY_PREFIX_TV_POS + key)
+                remove(KEY_PREFIX_TV_DUR + key)
+                remove(KEY_PREFIX_TV_SRV + key)
+                remove(KEY_PREFIX_TV_TIME + key)
+            }
+            remove(KEY_RECENT_TV)
+        }
+        _recentTvFlow.value = emptyList()
+        if (lastWatchedCache?.mediaType == MediaType.TV) {
+            clearLastWatched()
+        }
+    }
 }

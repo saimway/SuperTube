@@ -240,11 +240,9 @@ class ShortsViewModel
                 viewModelScope.launch(PerformanceDispatcher.networkIO) {
                     _uiState.update { it.copy(isRefreshing = true) }
                     try {
-                        // Record current short as shown so it's not served again immediately
-                        val currentShortId = _uiState.value.shorts.getOrNull(_uiState.value.currentIndex)?.id
-                        if (!currentShortId.isNullOrBlank()) {
-                            feed.recordShown(currentShortId)
-                        }
+                        // Record all currently loaded shorts as shown so they are not served again immediately
+                        val loadedIds = _uiState.value.shorts.mapNotNull { it.id.takeIf(String::isNotBlank) }
+                        loadedIds.forEach { feed.recordShown(it) }
 
                         // Discard cached pager in repository and clear disk reserve to ensure fresh items
                         feed.clearCaches(clearDiskReserve = true)

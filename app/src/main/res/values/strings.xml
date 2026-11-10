@@ -1270,6 +1270,9 @@
     <string name="movie_continue_watching">Continue Watching</string>
     <string name="movie_shelf_recently_watched">Recently Watched</string>
     <string name="tv_shelf_recently_watched">Recently Watched</string>
+    <string name="movie_clear_history_title">Clear watch history?</string>
+    <string name="movie_clear_history_message">This will remove all items from your recently watched history. This cannot be undone.</string>
+    <string name="movie_remove_from_history">Remove from history</string>
     <string name="movie_resume">Resume</string>
     <string name="movie_resumed_from">Resumed from %1$s</string>
     <string name="movie_restart">Restart</string>

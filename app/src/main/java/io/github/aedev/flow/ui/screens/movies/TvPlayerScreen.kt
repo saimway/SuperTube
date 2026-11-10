@@ -20,13 +20,9 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -91,6 +87,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,6 +109,7 @@ import io.github.aedev.flow.R
 import io.github.aedev.flow.data.movie.MoviePlaybackManager
 import io.github.aedev.flow.data.movie.MovieServer
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
 private val ALLOWED_STREAMING_DOMAINS = setOf(
@@ -258,6 +256,7 @@ fun TvPlayerScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
+    val scope = rememberCoroutineScope()
 
     var currentSeason by remember(tvId, initialSeason) { mutableIntStateOf(initialSeason) }
     var currentEpisode by remember(tvId, initialEpisode) { mutableIntStateOf(initialEpisode) }
@@ -300,7 +299,6 @@ fun TvPlayerScreen(
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
-    var controlsVisible by remember { mutableStateOf(true) }
     var showServerSheet by remember { mutableStateOf(false) }
     var showEpisodeSheet by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
@@ -495,8 +493,11 @@ fun TvPlayerScreen(
                 )
             },
             onPageLoaded = {
-                if (!isStreamPlaying) {
-                    statusMessage = "Connecting to stream…"
+                scope.launch {
+                    delay(2500L)
+                    if (!hasError) {
+                        isConnecting = false
+                    }
                 }
             },
             onErrorOccurred = { error ->
@@ -547,15 +548,7 @@ fun TvPlayerScreen(
             // -------------------------------------------------------------
             // FULLSCREEN LANDSCAPE MODE
             // -------------------------------------------------------------
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                        onClick = { controlsVisible = !controlsVisible },
-                    ),
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 // Re-parent the existing persistent WebView without recreating it
                 AndroidView(
                     factory = {
@@ -566,34 +559,16 @@ fun TvPlayerScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                // Status / Connecting Overlay in Fullscreen
+                // Non-blocking loading indicator along top edge in Fullscreen
                 if (isConnecting && !hasError) {
-                    Box(
+                    LinearProgressIndicator(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.7f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(48.dp),
-                            )
-                            Text(
-                                text = statusMessage ?: stringResource(R.string.movie_player_loading),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White,
-                            )
-                            Text(
-                                text = currentServer.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .align(Alignment.TopCenter),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.Transparent,
+                    )
                 }
 
                 // Error Overlay in Fullscreen
@@ -712,131 +687,72 @@ fun TvPlayerScreen(
                     }
                 }
 
-                // Overlay Controls (Header + Bottom Bar)
-                AnimatedVisibility(
-                    visible = controlsVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                // Floating Corner Controls in Fullscreen (Non-blocking: touches go directly to WebView)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.45f)),
-                        verticalArrangement = Arrangement.SpaceBetween,
+                    IconButton(
+                        onClick = { isFullscreen = false },
+                        modifier = Modifier.size(40.dp),
                     ) {
-                        // Top Bar
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.6f),
+                            modifier = Modifier.fillMaxSize(),
                         ) {
-                            IconButton(onClick = { isFullscreen = false }) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Rounded.CloseFullscreen,
                                     contentDescription = stringResource(R.string.back),
                                     tint = Color.White,
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
+                        }
+                    }
 
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.weight(1f),
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = { showEpisodeSheet = true },
+                            modifier = Modifier.size(40.dp),
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.6f),
+                                modifier = Modifier.fillMaxSize(),
                             ) {
-                                Text(
-                                    text = showTitle,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                val epCode = "S%02dE%02d".format(currentSeason, currentEpisode)
-                                Text(
-                                    text = if (currentEpisodeTitle.isNotBlank()) "$epCode • $currentEpisodeTitle" else epCode,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                IconButton(onClick = { showEpisodeSheet = true }) {
+                                Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Default.VideoLibrary,
                                         contentDescription = stringResource(R.string.tv_player_episodes),
                                         tint = Color.White,
-                                    )
-                                }
-
-                                IconButton(onClick = { showServerSheet = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Dns,
-                                        contentDescription = stringResource(R.string.movie_player_switch_server),
-                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp),
                                     )
                                 }
                             }
                         }
 
-                        // Bottom Control Bar (Episode navigation & stepper)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                        IconButton(
+                            onClick = { showServerSheet = true },
+                            modifier = Modifier.size(40.dp),
                         ) {
-                            IconButton(
-                                onClick = {
-                                    if (prevEp != null) playEpisode(currentSeason, prevEp.episodeNumber)
-                                },
-                                enabled = prevEp != null,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SkipPrevious,
-                                    contentDescription = stringResource(R.string.tv_player_previous_episode),
-                                    tint = if (prevEp != null) Color.White else Color.White.copy(alpha = 0.3f),
-                                )
-                            }
-
                             Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color = Color.White.copy(alpha = 0.15f),
-                                modifier = Modifier.clickable { showEpisodeSheet = true },
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.6f),
+                                modifier = Modifier.fillMaxSize(),
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
+                                Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Default.VideoLibrary,
-                                        contentDescription = null,
+                                        imageVector = Icons.Default.Dns,
+                                        contentDescription = stringResource(R.string.movie_player_switch_server),
                                         tint = Color.White,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.tv_player_episodes_count, episodes.size),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = Color.White,
+                                        modifier = Modifier.size(20.dp),
                                     )
                                 }
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    if (nextEp != null) playEpisode(currentSeason, nextEp.episodeNumber)
-                                },
-                                enabled = nextEp != null,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SkipNext,
-                                    contentDescription = stringResource(R.string.tv_player_next_episode),
-                                    tint = if (nextEp != null) Color.White else Color.White.copy(alpha = 0.3f),
-                                )
                             }
                         }
                     }
@@ -884,6 +800,14 @@ fun TvPlayerScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+
+                    IconButton(onClick = { isFullscreen = true }) {
+                        Icon(
+                            imageVector = Icons.Rounded.OpenInFull,
+                            contentDescription = stringResource(R.string.fullscreen),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
 
                 // 16:9 Rounded Player Container
@@ -906,60 +830,16 @@ fun TvPlayerScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    // Connecting / Thumbnail Overlay in portrait
-                    if (!isStreamPlaying && !hasError) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            if (backdropUrl != null) {
-                                AsyncImage(
-                                    model = backdropUrl,
-                                    contentDescription = showTitle,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.65f)),
-                            )
-
-                            // Status overlay
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .padding(end = 20.dp),
-                                horizontalAlignment = Alignment.End,
-                            ) {
-                                Text(
-                                    text = currentServer.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                )
-                                Text(
-                                    text = currentServer.badge,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.75f),
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    Text(
-                                        text = statusMessage ?: stringResource(R.string.movie_player_loading),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-                        }
+                    // Non-blocking loading indicator along top edge in portrait
+                    if (isConnecting && !hasError) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(3.dp)
+                                .align(Alignment.TopCenter),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.Transparent,
+                        )
                     }
 
                     // Resume Badge in Portrait
@@ -1008,29 +888,6 @@ fun TvPlayerScreen(
                                             null,
                                         )
                                     },
-                                )
-                            }
-                        }
-                    }
-
-                    // Fullscreen Expand Button in bottom-right corner of player
-                    IconButton(
-                        onClick = { isFullscreen = true },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(6.dp),
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.Black.copy(alpha = 0.55f),
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Rounded.OpenInFull,
-                                    contentDescription = stringResource(R.string.fullscreen),
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }

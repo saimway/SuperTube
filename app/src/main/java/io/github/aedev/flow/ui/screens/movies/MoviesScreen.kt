@@ -238,6 +238,8 @@ fun MoviesScreen(
                                                     title = stringResource(R.string.movie_shelf_recently_watched),
                                                     items = recentMovies,
                                                     onItemClick = { item -> onPlayMovie(item.mediaId) },
+                                                    onDeleteItem = { item -> MoviePlaybackManager.clearProgress(item.mediaId) },
+                                                    onClearAll = { MoviePlaybackManager.clearMovieHistory() },
                                                 )
                                             }
                                         }
@@ -352,6 +354,8 @@ fun MoviesScreen(
                                                     title = stringResource(R.string.tv_shelf_recently_watched),
                                                     items = recentTv,
                                                     onItemClick = { item -> onPlayTv(item.mediaId, item.seasonNumber, item.episodeNumber) },
+                                                    onDeleteItem = { item -> MoviePlaybackManager.clearTvProgress(item.mediaId, item.seasonNumber, item.episodeNumber) },
+                                                    onClearAll = { MoviePlaybackManager.clearTvHistory() },
                                                 )
                                             }
                                         }

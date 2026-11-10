@@ -38,7 +38,24 @@ internal class NeuroDiscovery(
 ) {
     companion object {
         /** What Home searches before anything is learned or picked; never recorded as learned (#907). */
-        val STARTER_QUERIES = listOf("Music", "Science", "Technology", "Education", "Nature")
+        val STARTER_QUERIES = listOf(
+            "Technology",
+            "Science",
+            "Documentary",
+            "Engineering",
+            "Nature",
+            "Space Exploration",
+            "Productivity",
+            "Architecture",
+            "Filmmaking",
+            "Computer Science",
+            "Wildlife",
+            "Physics",
+            "History",
+            "Innovation",
+            "Woodworking",
+            "Astronomy",
+        )
         private const val SPECIFIC_QUERY_MAX_WORDS = 4
         private const val QUERY_MIN_SPECIFICITY = 0.65
 

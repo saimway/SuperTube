@@ -1758,7 +1758,7 @@ class FlowNeuroEngine internal constructor(
                         if (preferred.isNotEmpty()) {
                             preferred.shuffled().take(5)
                         } else {
-                            NeuroDiscovery.STARTER_QUERIES
+                            NeuroDiscovery.STARTER_QUERIES.shuffled().take(6)
                         }
                     }
 

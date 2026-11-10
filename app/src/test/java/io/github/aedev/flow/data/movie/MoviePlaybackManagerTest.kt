@@ -193,4 +193,63 @@ class MoviePlaybackManagerTest {
         assertThat(recent.first().seasonNumber).isEqualTo(1)
         assertThat(recent.first().episodeNumber).isEqualTo(2)
     }
+
+    @Test
+    fun `clearMovieHistory clears all recent movies and updates flow to empty`() {
+        MoviePlaybackManager.saveProgress(
+            movieId = 3001L,
+            serverId = "ember",
+            positionSeconds = 100L,
+            durationSeconds = 5000L,
+            title = "Movie 1",
+        )
+        assertThat(MoviePlaybackManager.recentMoviesFlow.value).isNotEmpty()
+
+        MoviePlaybackManager.clearMovieHistory()
+        assertThat(MoviePlaybackManager.recentMoviesFlow.value).isEmpty()
+    }
+
+    @Test
+    fun `clearTvHistory clears all recent tv shows and updates flow to empty`() {
+        MoviePlaybackManager.saveTvProgress(
+            tvId = 4001L,
+            seasonNumber = 1,
+            episodeNumber = 1,
+            serverId = "supernova",
+            positionSeconds = 150L,
+            durationSeconds = 2500L,
+            title = "Show 1",
+        )
+        assertThat(MoviePlaybackManager.recentTvFlow.value).isNotEmpty()
+
+        MoviePlaybackManager.clearTvHistory()
+        assertThat(MoviePlaybackManager.recentTvFlow.value).isEmpty()
+    }
+
+    @Test
+    fun `removeRecentTv removes only matching show and updates recentTvFlow`() {
+        MoviePlaybackManager.saveTvProgress(
+            tvId = 5001L,
+            seasonNumber = 1,
+            episodeNumber = 1,
+            serverId = "supernova",
+            positionSeconds = 100L,
+            durationSeconds = 2000L,
+            title = "Show A",
+        )
+        MoviePlaybackManager.saveTvProgress(
+            tvId = 5002L,
+            seasonNumber = 1,
+            episodeNumber = 1,
+            serverId = "supernova",
+            positionSeconds = 100L,
+            durationSeconds = 2000L,
+            title = "Show B",
+        )
+        assertThat(MoviePlaybackManager.recentTvFlow.value.size).isAtLeast(2)
+
+        MoviePlaybackManager.removeRecentTv(5001L)
+        val remaining = MoviePlaybackManager.recentTvFlow.value
+        assertThat(remaining.any { it.mediaId == 5001L }).isFalse()
+    }
 }

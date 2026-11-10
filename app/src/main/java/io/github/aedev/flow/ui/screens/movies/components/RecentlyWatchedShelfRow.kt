@@ -19,20 +19,30 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,20 +58,24 @@ fun RecentlyWatchedShelfRow(
     title: String,
     items: List<LastWatchedMedia>,
     onItemClick: (LastWatchedMedia) -> Unit,
+    onDeleteItem: ((LastWatchedMedia) -> Unit)? = null,
+    onClearAll: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) return
+
+    var showClearConfirm by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
     ) {
-        // Shelf Header
+        // Shelf Header with title and optional Clear All action
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -69,7 +83,22 @@ fun RecentlyWatchedShelfRow(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
             )
+
+            if (onClearAll != null) {
+                IconButton(
+                    onClick = { showClearConfirm = true },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = stringResource(R.string.clear_all),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
         }
 
         // Horizontal List
@@ -86,8 +115,32 @@ fun RecentlyWatchedShelfRow(
                 RecentlyWatchedCard(
                     item = item,
                     onClick = { onItemClick(item) },
+                    onDelete = onDeleteItem?.let { { it(item) } },
                 )
             }
+        }
+
+        if (showClearConfirm && onClearAll != null) {
+            AlertDialog(
+                onDismissRequest = { showClearConfirm = false },
+                title = { Text(stringResource(R.string.movie_clear_history_title)) },
+                text = { Text(stringResource(R.string.movie_clear_history_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showClearConfirm = false
+                            onClearAll()
+                        },
+                    ) {
+                        Text(stringResource(R.string.clear))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearConfirm = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
         }
     }
 }
@@ -96,6 +149,7 @@ fun RecentlyWatchedShelfRow(
 private fun RecentlyWatchedCard(
     item: LastWatchedMedia,
     onClick: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -153,6 +207,32 @@ private fun RecentlyWatchedCard(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp),
                         )
+                    }
+                }
+
+                // Delete / Remove single item button (top-right)
+                if (onDelete != null) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(26.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.65f),
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.movie_remove_from_history),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
                     }
                 }
 
