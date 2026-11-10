@@ -281,7 +281,17 @@ internal class NeuroDiscovery(
     private fun isDiscoveryEligible(
         topic: MatureTopic,
         isMatureBrain: Boolean = false,
+    ): Boolean = isDiscoveryEligible(topic, null, isMatureBrain)
+
+    private fun isDiscoveryEligible(
+        topic: MatureTopic,
+        brain: UserBrain? = null,
+        isMatureBrain: Boolean = false,
+        now: Long = System.currentTimeMillis(),
     ): Boolean {
+        if (brain != null && NeuroScoring.hasActiveTopicRejection(topic.name, brain.rejectionPatterns, now)) {
+            return false
+        }
         if (topic.hasDiscoveryEvidence) return true
         if (topic.maturityLevel >= TopicMaturity.DEVELOPING) return true
         if (isMatureBrain && topic.score >= 0.10) return true
@@ -538,6 +548,7 @@ internal class NeuroDiscovery(
         now: Long = System.currentTimeMillis(),
         depth: Int = 0,
         channelEdges: Map<String, Double> = emptyMap(),
+        intent: SessionIntent = SessionIntent(),
         personaProvider: (UserBrain) -> FlowPersona,
     ): List<DiscoveryQuery> {
         val persona = personaProvider(brain)
@@ -571,7 +582,7 @@ internal class NeuroDiscovery(
         val queries = mutableListOf<DiscoveryQuery>()
 
         addDirectQueries(queries, selection, brain, isMatureBrain, depth)
-        addCombinationQueries(queries, selection, isMatureBrain)
+        addCombinationQueries(queries, selection, brain, isMatureBrain, now)
         addAffinityQueries(queries, brain)
         addTimeContextQueries(queries, brain, bucket, selection)
         addChannelQueries(queries, brain)
@@ -584,12 +595,36 @@ internal class NeuroDiscovery(
         val filtered =
             queries
                 .filter { q ->
-                    !blocked.any { b -> q.query.lowercase().contains(b) }
+                    !blocked.any { b -> q.query.lowercase().contains(b) } &&
+                        !NeuroScoring.hasActiveTopicRejection(q.query, brain.rejectionPatterns, now)
                 }.mapNotNull { q ->
                     sanitizeQuery(NeuroDisplayForms.searchText(brain.displayForms, q.query))?.let { q.copy(query = it) }
                 }
 
-        return balanceQueryStrategies(filtered, selection.uniqueTopicCount())
+        val balanced = balanceQueryStrategies(filtered, selection.uniqueTopicCount())
+
+        // Inject active craving topic into Wave 1 discovery queries if craving intensity >= 0.5f
+        if (intent.activeCravingTopic != null && intent.cravingIntensity >= 0.5f) {
+            val cleanTopic = NeuroScoring.stripDomainTag(intent.activeCravingTopic)
+            val naturalQuery = buildNaturalQuery(cleanTopic, brain)
+            val sanitized = sanitizeQuery(NeuroDisplayForms.searchText(brain.displayForms, naturalQuery))
+            if (sanitized != null &&
+                !blocked.any { sanitized.lowercase().contains(it) } &&
+                !NeuroScoring.hasActiveTopicRejection(cleanTopic, brain.rejectionPatterns, now)
+            ) {
+                val cravingQuery =
+                    DiscoveryQuery(
+                        query = sanitized,
+                        strategy = QueryStrategy.DEEP_DIVE,
+                        confidence = 1.0,
+                        reasoning = "Session Craving: $cleanTopic (intensity: ${intent.cravingIntensity})",
+                        clusterKey = cleanTopic,
+                    )
+                return listOf(cravingQuery) + balanced.filterNot { it.query.equals(sanitized, ignoreCase = true) }
+            }
+        }
+
+        return balanced
     }
 
     // ═══════════════════════════════════════════════
@@ -610,7 +645,7 @@ internal class NeuroDiscovery(
         // ("android" → "android machine learning") instead of repeating the anchor.
         selection.choices.forEachIndexed { index, choice ->
             val topic = choice.topic
-            if (!isDiscoveryEligible(topic, isMatureBrain)) return@forEachIndexed
+            if (!isDiscoveryEligible(topic, brain, isMatureBrain)) return@forEachIndexed
 
             val anchorBase = NeuroScoring.stripDomainTag(topic.name)
             val query =
@@ -642,10 +677,12 @@ internal class NeuroDiscovery(
     private fun addCombinationQueries(
         queries: MutableList<DiscoveryQuery>,
         selection: TopicSelection,
+        brain: UserBrain,
         isMatureBrain: Boolean,
+        now: Long = System.currentTimeMillis(),
     ) {
-        val primary = selection.primary.firstOrNull { isDiscoveryEligible(it, isMatureBrain) } ?: return
-        val secondary = selection.secondary.filter { isDiscoveryEligible(it, isMatureBrain) }
+        val primary = selection.primary.firstOrNull { isDiscoveryEligible(it, brain, isMatureBrain, now) } ?: return
+        val secondary = selection.secondary.filter { isDiscoveryEligible(it, brain, isMatureBrain, now) }
 
         if (secondary.isEmpty()) return
 
@@ -898,7 +935,7 @@ internal class NeuroDiscovery(
         val established =
             selection
                 .allTopics()
-                .filter { it.maturityLevel >= TopicMaturity.ESTABLISHED && isDiscoveryEligible(it, isMatureBrain) }
+                .filter { it.maturityLevel >= TopicMaturity.ESTABLISHED && isDiscoveryEligible(it, brain, isMatureBrain) }
                 .take(2)
 
         established.forEachIndexed { index, topic ->
@@ -937,7 +974,7 @@ internal class NeuroDiscovery(
         persona: FlowPersona,
         isMatureBrain: Boolean,
     ) {
-        val primary = selection.primary.firstOrNull { isDiscoveryEligible(it, isMatureBrain) } ?: return
+        val primary = selection.primary.firstOrNull { isDiscoveryEligible(it, brain, isMatureBrain) } ?: return
         val v = brain.globalVector
 
         // The format the viewer actually watches, once there is one; until then a guess from length.

@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -117,7 +118,11 @@ class ShortsViewModel
             }
             viewModelScope.launch {
                 FeedInvalidationBus.events.collect { event ->
-                    if (event is FeedInvalidationBus.Event.ChannelBlocked) dropChannel(event.channelId)
+                    when (event) {
+                        is FeedInvalidationBus.Event.ChannelBlocked -> dropChannel(event.channelId)
+                        is FeedInvalidationBus.Event.NotInterested -> dropVideo(event.videoId)
+                        else -> Unit
+                    }
                 }
             }
         }
@@ -560,7 +565,24 @@ class ShortsViewModel
 
         private fun dropChannel(channelId: String) {
             feed.evictChannel(channelId)
-            if (queue?.removeChannel(channelId) != ShortsQueueChange.None) publishQueue()
+            if (queue?.removeChannel(channelId) != ShortsQueueChange.None) {
+                publishQueue()
+            } else {
+                _uiState.update { state ->
+                    state.copy(shorts = state.shorts.filter { it.channelId != channelId })
+                }
+            }
+        }
+
+        private fun dropVideo(videoId: String) {
+            val controller = queue
+            if (controller != null && controller.remove(videoId) != ShortsQueueChange.None) {
+                publishQueue()
+            } else {
+                _uiState.update { state ->
+                    state.copy(shorts = state.shorts.filter { it.id != videoId })
+                }
+            }
         }
 
         fun notInterested(short: ShortVideo) {

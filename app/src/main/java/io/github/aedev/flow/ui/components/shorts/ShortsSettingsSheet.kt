@@ -259,8 +259,8 @@ private fun ShortsSettingsMainPage(
         )
         FlowNavRow(
             leadingIcon = Icons.Rounded.Block,
-            title = stringResource(R.string.dont_show_channel),
-            supportingText = stringResource(R.string.dont_show_channel_desc),
+            title = stringResource(R.string.dont_recommend_channel),
+            supportingText = stringResource(R.string.dont_recommend_channel_desc),
             shape = flowRowGroupShape(2, THIS_SHORT_ROWS),
             onClick = onBlockChannel,
         )

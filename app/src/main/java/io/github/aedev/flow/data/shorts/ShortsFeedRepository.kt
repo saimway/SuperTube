@@ -17,6 +17,7 @@ import io.github.aedev.flow.data.model.toShortVideo
 import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.recommendation.FeedExclusions
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
+import io.github.aedev.flow.data.recommendation.SessionIntent
 import io.github.aedev.flow.data.recommendation.ShortsSeedInput
 import io.github.aedev.flow.data.recommendation.ShortsSeedSource
 import io.github.aedev.flow.data.shorts.feed.InnerTubeShortsFeedSources
@@ -195,9 +196,11 @@ class ShortsFeedRepository
             object : ShortsFeedContext {
                 override suspend fun profile(): ShortsFeedProfile {
                     val interactions = runCatching { FlowNeuroEngine.getBrainSnapshot().totalInteractions }.getOrDefault(0)
+                    val sessionIntent = runCatching { FlowNeuroEngine.getSessionIntent() }.getOrDefault(SessionIntent())
                     return ShortsFeedProfile(
                         subscribedChannelIds = subscriptionRepository.getAllSubscriptionIds(),
                         isColdStart = interactions < COLD_START_INTERACTIONS,
+                        sessionIntent = sessionIntent,
                     )
                 }
 

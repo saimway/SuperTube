@@ -228,6 +228,20 @@ internal data class ScoredVideo(
     val vector: ContentVector,
 )
 
+data class Candidate(
+    val video: io.github.aedev.flow.data.model.Video,
+    val vector: ContentVector,
+)
+
+// ── Session Intent & Craving ──
+
+data class SessionIntent(
+    val consecutiveSkips: Int = 0,
+    val activeCravingTopic: String? = null,
+    val cravingIntensity: Float = 0.0f,
+    val discoveryBias: Float = 0.0f,
+)
+
 data class RejectionSignal(
     val count: Int,
     val lastRejectedAt: Long,
@@ -366,7 +380,10 @@ internal data class ScoringParams(
     val categoryOf: (channelId: String) -> ChannelCategory? = { null },
     /** Channel to the strength (0..1) of its strongest pair with a channel the viewer watches ([NeuroCoWatchStore]). */
     val coWatchPrior: Map<String, Double> = emptyMap(),
+    val sessionIntent: SessionIntent = SessionIntent(),
 ) {
+    val intent: SessionIntent get() = sessionIntent
+
     val preparedTaste by lazy { NeuroVectorMath.PreparedVector(NeuroVectorMath.blend(brain.globalVector, brain.recentVector)) }
     val preparedShorts by lazy { NeuroVectorMath.PreparedVector(brain.shortsVector) }
     val preparedContext by lazy { NeuroVectorMath.PreparedVector(timeContextVector) }

@@ -726,6 +726,7 @@ class HomeViewModel
                                 onScreenIds = _uiState.value.videos.mapTo(HashSet()) { it.id },
                                 subCount = userSubs.size,
                                 totalInteractions = brain.totalInteractions,
+                                sessionIntent = FlowNeuroEngine.getSessionIntent(),
                             )
                         val finalMix = mix.videos
                         subsBacklog = mix.subsBacklog

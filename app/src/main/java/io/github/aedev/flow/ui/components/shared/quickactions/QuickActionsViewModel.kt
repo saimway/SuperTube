@@ -188,7 +188,7 @@ class QuickActionsViewModel
             viewModelScope.launch {
                 runAction {
                     feedback.markNotInterested(video)
-                    emit(R.string.not_interested_toast)
+                    emit(R.string.not_interested_toast, undo = QuickActionUndo.NotInterested(video.id))
                 }
             }
         }
@@ -308,6 +308,10 @@ class QuickActionsViewModel
 
                         is QuickActionUndo.AutoDownload -> {
                             autoDownload.undo(undo.videoId)
+                        }
+
+                        is QuickActionUndo.NotInterested -> {
+                            feedback.undoNotInterested(undo.videoId)
                         }
                     }
                 }

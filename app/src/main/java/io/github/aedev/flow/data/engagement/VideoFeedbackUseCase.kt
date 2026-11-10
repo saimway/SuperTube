@@ -7,6 +7,7 @@ import io.github.aedev.flow.data.local.ViewHistory
 import io.github.aedev.flow.data.local.WatchLaterCleanup
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.BlockedChannelNames
+import io.github.aedev.flow.data.recommendation.DismissedVideoStore
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.recommendation.InteractionType
 import io.github.aedev.flow.data.repository.YouTubeRepository
@@ -36,6 +37,7 @@ class VideoFeedbackUseCase
         private val videoStats: VideoStatsRecorder,
         private val watchLaterCleanup: WatchLaterCleanup,
         private val blockedNames: BlockedChannelNames,
+        private val dismissedStore: DismissedVideoStore,
     ) {
         /** Adds [video] to Watch later, or takes it out; returns whether it is saved afterwards. */
         suspend fun toggleWatchLater(video: Video): Boolean {
@@ -83,8 +85,14 @@ class VideoFeedbackUseCase
 
         suspend fun markNotInterested(video: Video) {
             FlowNeuroEngine.markNotInterested(context, video)
+            dismissedStore.record(video)
             videoStats.onAction(LedgerAction.NOT_INTERESTED)
             FeedInvalidationBus.emit(FeedInvalidationBus.Event.NotInterested(video.id, video.channelId))
+        }
+
+        suspend fun undoNotInterested(videoId: String) {
+            FlowNeuroEngine.unsuppressVideo(context, videoId)
+            dismissedStore.forget(videoId)
         }
 
         suspend fun markInterested(video: Video) {

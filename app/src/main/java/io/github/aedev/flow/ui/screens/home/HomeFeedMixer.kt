@@ -1,6 +1,7 @@
 package io.github.aedev.flow.ui.screens.home
 
 import io.github.aedev.flow.data.model.Video
+import io.github.aedev.flow.data.recommendation.SessionIntent
 import kotlinx.coroutines.flow.map
 
 internal enum class FeedSource {
@@ -32,32 +33,60 @@ internal fun homeFeedQuotas(
     subCount: Int,
     totalInteractions: Int,
     hasNeighbours: Boolean = false,
+    sessionIntent: SessionIntent = SessionIntent(),
 ): Map<FeedSource, Int> {
     val slots = remaining.coerceAtLeast(0)
     if (slots == 0) {
         return FeedSource.entries.associateWith { 0 }
     }
 
-    val subs =
+    var subsShare =
         when {
-            subCount <= 0 -> 0
-            totalInteractions > 50 -> (slots * 0.40).toInt()
-            else -> (slots * 0.35).toInt()
-        }.coerceAtLeast(0)
-    val related =
+            subCount <= 0 -> 0.0
+            totalInteractions > 50 -> 0.40
+            else -> 0.35
+        }
+    var relatedShare =
         when {
-            subCount <= 0 -> (slots * 0.35).toInt()
-            totalInteractions > 50 -> (slots * 0.25).toInt()
-            else -> (slots * 0.30).toInt()
-        }.coerceAtLeast(0)
-    val discovery =
+            subCount <= 0 -> 0.35
+            totalInteractions > 50 -> 0.25
+            else -> 0.30
+        }
+    var discoveryShare =
         when {
-            subCount <= 0 -> (slots * 0.45).toInt()
-            else -> (slots * 0.25).toInt()
-        }.coerceAtLeast(0)
-    // The remainder, about an eighth of the page: the share the retired trending lane used to get.
+            subCount <= 0 -> 0.45
+            else -> 0.25
+        }
+    var remainderShare = (1.0 - subsShare - relatedShare - discoveryShare).coerceAtLeast(0.0)
+
+    // Dynamic modulation via SessionIntent:
+    // 1. Fatigue Dial: consecutiveSkips >= 3 shifts up to 15% from subs to discovery
+    if (sessionIntent.consecutiveSkips >= 3) {
+        val fatigueShift = if (subsShare > 0.0) minOf(0.15, subsShare) else minOf(0.15, relatedShare * 0.4)
+        if (subsShare > 0.0) {
+            subsShare -= fatigueShift
+        } else {
+            relatedShare -= fatigueShift
+        }
+        discoveryShare += fatigueShift
+    }
+
+    // 2. Craving Adaptation: cravingIntensity > 0.5f elevates related up to 15%
+    if (sessionIntent.activeCravingTopic != null && sessionIntent.cravingIntensity > 0.5f) {
+        val cravingFactor = ((sessionIntent.cravingIntensity - 0.5f) / 0.5f).coerceIn(0.0f, 1.0f).toDouble()
+        val targetBoost = 0.15 * cravingFactor
+        val fromSubs = if (subsShare > 0.10) minOf(targetBoost * 0.7, subsShare - 0.10) else 0.0
+        val fromRemainder = if (remainderShare > 0.04) minOf(targetBoost * 0.3, remainderShare - 0.04) else 0.0
+        val actualBoost = fromSubs + fromRemainder
+        subsShare -= fromSubs
+        remainderShare -= fromRemainder
+        relatedShare += actualBoost
+    }
+
+    val subs = (slots * subsShare).toInt().coerceAtLeast(0)
+    val related = (slots * relatedShare).toInt().coerceAtLeast(0)
+    val discovery = (slots * discoveryShare).toInt().coerceAtLeast(0)
     val remainder = (slots - subs - related - discovery).coerceAtLeast(0)
-    // Neighbours share it once the viewer has channels of their own to point at them.
     val neighbours = if (hasNeighbours && totalInteractions > 50) minOf(remainder / 2, (slots * 0.10).toInt()) else 0
 
     return mapOf(

@@ -339,8 +339,8 @@ private fun feedRows(
         actionRow(
             key = "block",
             icon = Icons.Outlined.Block,
-            title = stringResource(R.string.dont_show_channel),
-            supporting = stringResource(R.string.dont_show_channel_desc),
+            title = stringResource(R.string.dont_recommend_channel),
+            supporting = stringResource(R.string.dont_recommend_channel_desc),
             destructive = true,
         ) {
             viewModel.blockChannel(video)

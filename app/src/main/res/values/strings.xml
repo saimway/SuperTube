@@ -1454,6 +1454,8 @@
     <!-- Channel blocking -->
     <string name="dont_show_channel">Don’t show this channel</string>
     <string name="dont_show_channel_desc">Remove from your recommendations</string>
+    <string name="dont_recommend_channel">Don’t recommend channel</string>
+    <string name="dont_recommend_channel_desc">We won’t recommend videos from this channel</string>
     <string name="channel_metadata_unavailable">Channel information is unavailable</string>
     <string name="channel_blocked_toast">%1$s won’t appear in your feed</string>
     <!-- Misc -->

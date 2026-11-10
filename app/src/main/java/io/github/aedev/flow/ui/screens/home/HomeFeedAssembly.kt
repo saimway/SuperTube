@@ -2,6 +2,7 @@ package io.github.aedev.flow.ui.screens.home
 
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FeedExclusions
+import io.github.aedev.flow.data.recommendation.SessionIntent
 
 internal const val FRESH_UPLOAD_MAX_SIGHTINGS = 3
 internal const val HOME_TARGET_SIZE = 40
@@ -230,6 +231,7 @@ internal fun assembleHomeFeed(
     subCount: Int,
     totalInteractions: Int,
     targetSize: Int = HOME_TARGET_SIZE,
+    sessionIntent: SessionIntent = SessionIntent(),
 ): HomeFeedMix {
     val finalMix = mutableListOf<Video>()
     val usedChannelCounts = mutableMapOf<String, Int>()
@@ -248,7 +250,14 @@ internal fun assembleHomeFeed(
     }
 
     val remaining = (targetSize - finalMix.size).coerceAtLeast(0)
-    val quotas = homeFeedQuotas(remaining, subCount, totalInteractions, hasNeighbours = lanes.bestNeighbours.isNotEmpty())
+    val quotas =
+        homeFeedQuotas(
+            remaining = remaining,
+            subCount = subCount,
+            totalInteractions = totalInteractions,
+            hasNeighbours = lanes.bestNeighbours.isNotEmpty(),
+            sessionIntent = sessionIntent,
+        )
     val sourceMix =
         blendFeedSources(
             lanes =

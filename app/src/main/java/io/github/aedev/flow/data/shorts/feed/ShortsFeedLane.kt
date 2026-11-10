@@ -27,6 +27,7 @@ data class ShortsLaneItem(
 data class ShortsFeedProfile(
     val subscribedChannelIds: Set<String>,
     val isColdStart: Boolean,
+    val sessionIntent: io.github.aedev.flow.data.recommendation.SessionIntent = io.github.aedev.flow.data.recommendation.SessionIntent(),
 ) {
     val hasSubscriptions: Boolean
         get() = subscribedChannelIds.isNotEmpty()

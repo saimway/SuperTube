@@ -189,6 +189,25 @@ class QuickActionsMessagesTest {
         }
 
     @Test
+    fun `marking not interested offers an undo that restores the video`() =
+        runTest(testDispatcher) {
+            val viewModel = viewModel()
+            val messages = messagesOf(viewModel)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.markNotInterested(video)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(messages.map { it.text }).containsExactly(R.string.not_interested_toast)
+            assertThat(messages.single().undo).isEqualTo(QuickActionUndo.NotInterested(video.id))
+
+            viewModel.undo(messages.single().undo!!)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify(exactly = 1) { feedback.undoNotInterested(video.id) }
+        }
+
+    @Test
     fun `a failed action says so instead of showing the exception`() =
         runTest(testDispatcher) {
             coEvery { feedback.markNotInterested(video) } throws IllegalStateException("boom")

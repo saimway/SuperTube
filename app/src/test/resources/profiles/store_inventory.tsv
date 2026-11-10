@@ -129,6 +129,7 @@ profile_file	flow_neuro_categories_v1.json	main:data/recommendation/NeuroCategor
 profile_file	flow_neuro_cowatch_v1.json	main:data/recommendation/NeuroCoWatchStore.kt	PROFILE	private	Co-watch graph from the profile's sessions.
 profile_file	flow_neuro_neighbours_v1.json	main:data/recommendation/NeuroNeighbourStore.kt	PROFILE	private	Engine state.
 profile_file	flow_blocked_channel_names_v1.json	main:data/recommendation/BlockedChannelNameStore.kt	PROFILE	private	Names for the profile's blocked channels.
+profile_file	flow_dismissed_videos_v1.json	main:data/recommendation/DismissedVideoStore.kt	PROFILE	private	Records for the profile's dismissed videos.
 profile_file	flow_music_brain_v1.json	main:data/recommendation/music/MusicBrainStorage.kt	PROFILE	private	The music brain.
 profile_file	neuro_brain_before_v<N>.json	main:data/recommendation/NeuroStorage.kt	PROFILE	private	Brain copy before a migration; the delete is prefix-wide, so it needs the profile's own folder.
 profile_file	neuro/home_snapshots/	main:data/recommendation/snapshot/HomeSnapshotStore.kt	PROFILE	private	Records that profile's Home.

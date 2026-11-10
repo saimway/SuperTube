@@ -73,6 +73,7 @@ internal object NeuroScoring {
     const val MOMENTUM_WINDOW = 10
     const val MOMENTUM_BOOST = 0.08
     const val MOMENTUM_THRESHOLD = 3
+    const val CRAVING_BOOST_MAX = 0.12
     const val IMPRESSION_CACHE_MAX = 500
     const val IMPRESSION_DECAY_RATE = 0.1
     const val IMPRESSION_PENALTY_HEAVY = 0.05
@@ -461,6 +462,7 @@ internal object NeuroScoring {
         sessionVideoCount: Int,
         impressionEntry: ImpressionEntry?,
         now: Long,
+        sessionIntent: SessionIntent = SessionIntent(),
     ): Double {
         val primaryTopic = videoVector.topics.maxByOrNull { it.value }?.key ?: ""
 
@@ -472,9 +474,24 @@ internal object NeuroScoring {
                 0
             }
 
+        val isCraving =
+            sessionIntent.activeCravingTopic != null &&
+                primaryTopic.isNotEmpty() &&
+                (stripDomainTag(primaryTopic).equals(stripDomainTag(sessionIntent.activeCravingTopic), ignoreCase = true) ||
+                    primaryTopic.equals(sessionIntent.activeCravingTopic, ignoreCase = true))
+
+        val decayRate =
+            if (isCraving && sessionIntent.cravingIntensity > 0f) {
+                (0.16 * (1.0 - (sessionIntent.cravingIntensity * 0.70).toDouble())).coerceAtLeast(0.04)
+            } else {
+                0.16
+            }
+
+        val minFreshness = if (isCraving) 0.50 else 0.15
+
         val momentumFactor =
             if (topicSessionCount > 0 && primaryTopic.isNotEmpty()) {
-                exp(-0.16 * topicSessionCount).coerceIn(0.15, 1.0)
+                exp(-decayRate * topicSessionCount).coerceIn(minFreshness, 1.0)
             } else {
                 1.0
             }
@@ -638,6 +655,47 @@ internal object NeuroScoring {
             }
 
         return rawBoost * dominancePenalty
+    }
+
+    /**
+     * Boosts candidates matching the active real-time session craving topic.
+     * Scales proportionally with the candidate's topic affinity and session craving intensity.
+     * Suppresses craving boost if the candidate matches active rejection patterns.
+     */
+    fun calculateCravingBoost(
+        candidate: Candidate,
+        sessionIntent: SessionIntent,
+        rejectionPatterns: Map<String, RejectionSignal> = emptyMap(),
+        now: Long = 0L,
+    ): Double = calculateCravingBoost(candidate.vector, sessionIntent, rejectionPatterns, now)
+
+    fun calculateCravingBoost(
+        videoVector: ContentVector,
+        sessionIntent: SessionIntent,
+        rejectionPatterns: Map<String, RejectionSignal> = emptyMap(),
+        now: Long = 0L,
+    ): Double {
+        if (rejectionPatterns.isNotEmpty() && calculateRejectionPatternPenalty(videoVector, rejectionPatterns, now) < 0.9) {
+            return 0.0
+        }
+        val cravingTopic = sessionIntent.activeCravingTopic ?: return 0.0
+        val intensity = sessionIntent.cravingIntensity
+        if (intensity <= 0f) return 0.0
+
+        val baseCraving = stripDomainTag(cravingTopic).lowercase()
+        var bestMatchWeight = 0.0
+        for ((topic, weight) in videoVector.topics) {
+            val base = stripDomainTag(topic).lowercase()
+            if (base == baseCraving || base.contains(baseCraving) || baseCraving.contains(base)) {
+                if (weight > bestMatchWeight) {
+                    bestMatchWeight = weight
+                }
+            }
+        }
+        if (bestMatchWeight < 0.20) return 0.0
+
+        val rawBoost = bestMatchWeight * intensity.toDouble() * CRAVING_BOOST_MAX
+        return rawBoost.coerceIn(0.0, CRAVING_BOOST_MAX)
     }
 
     /**
@@ -1005,6 +1063,37 @@ internal object NeuroScoring {
         }
     }
 
+    /**
+     * Checks if a topic name or its constituent terms match any active, effective rejection signal
+     * in [rejectionPatterns]. Returns true if the topic should be suppressed from recommendations
+     * or discovery query generation.
+     */
+    fun hasActiveTopicRejection(
+        topicName: String,
+        rejectionPatterns: Map<String, RejectionSignal>,
+        now: Long = System.currentTimeMillis(),
+    ): Boolean {
+        if (rejectionPatterns.isEmpty()) return false
+        val base = stripDomainTag(topicName).lowercase()
+        val terms = hashSetOf(base)
+        if (' ' in base) {
+            base.split(' ').filterTo(terms) { NeuroText.isTopicSized(it) && it !in REJECTION_BROAD_TOPICS }
+        }
+
+        for ((key, signal) in rejectionPatterns) {
+            val effective = effectiveRejections(signal, now)
+            if (effective < REJECTION_FORGET_BELOW) continue
+
+            val counts = !key.startsWith(REJECTION_WORD_PREFIX) || effective >= REJECTION_REPEATED
+            if (!counts) continue
+
+            if (matchesRejection(key, terms)) {
+                return true
+            }
+        }
+        return false
+    }
+
     fun getRejectionAggressionFactor(
         videoVector: ContentVector,
         rejectionPatterns: Map<String, RejectionSignal>,
@@ -1343,6 +1432,7 @@ internal object NeuroScoring {
                 p.sessionVideoCount,
                 p.impressions[video.id],
                 p.now,
+                p.sessionIntent,
             )
 
         if (p.isOnboarding) {
@@ -1377,6 +1467,8 @@ internal object NeuroScoring {
             )
 
         totalScore += calculateMomentumBoost(videoVector, p.recentInteractions, personalityScore)
+
+        totalScore += calculateCravingBoost(videoVector, p.sessionIntent, brain.rejectionPatterns, p.now)
 
         totalScore += explorationBonus(videoVector, brain, p.exploreWeight)
 

@@ -228,6 +228,13 @@ class FlowNeuroEngine internal constructor(
             video: Video,
         ) = getInstance(context).markNotInterested(video)
 
+        suspend fun unsuppressVideo(videoId: String) = requireInstance().unsuppressVideo(videoId)
+
+        suspend fun unsuppressVideo(
+            context: Context,
+            videoId: String,
+        ) = getInstance(context).unsuppressVideo(videoId)
+
         suspend fun onVideoInteraction(
             video: Video,
             interactionType: InteractionType,
@@ -1614,6 +1621,22 @@ class FlowNeuroEngine internal constructor(
                     channelMemory = ChannelMemory.recordRejection(currentUserBrain.channelMemory, video.channelId, video.channelName, now),
                     rejectionPatterns = updatedPatterns,
                     topicEvidence = bumpNegativeEvidence(currentUserBrain.topicEvidence, videoVector),
+                )
+            storage.save(deepFlowBookkeeping.persistable(currentUserBrain))
+        }
+    }
+
+    /**
+     * Unsuppresses a previously dismissed video by removing it from [currentUserBrain.suppressedVideoIds]
+     * and saving the brain. Used for Undo actions.
+     */
+    suspend fun unsuppressVideo(videoId: String) {
+        if (videoId.isBlank()) return
+        withBrainLock {
+            if (videoId !in currentUserBrain.suppressedVideoIds) return@withBrainLock
+            currentUserBrain =
+                currentUserBrain.copy(
+                    suppressedVideoIds = currentUserBrain.suppressedVideoIds - videoId,
                 )
             storage.save(deepFlowBookkeeping.persistable(currentUserBrain))
         }

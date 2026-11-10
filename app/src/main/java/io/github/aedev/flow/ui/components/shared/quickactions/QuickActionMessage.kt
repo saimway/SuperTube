@@ -64,4 +64,9 @@ sealed interface QuickActionUndo {
     data class AutoDownload(
         val videoId: String,
     ) : QuickActionUndo
+
+    /** A video marked not interested. */
+    data class NotInterested(
+        val videoId: String,
+    ) : QuickActionUndo
 }

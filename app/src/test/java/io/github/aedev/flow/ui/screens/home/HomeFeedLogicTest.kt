@@ -12,6 +12,7 @@ import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.data.recommendation.FlowPersona
 import io.github.aedev.flow.data.recommendation.GraphSeedInput
 import io.github.aedev.flow.data.recommendation.GraphSeedSource
+import io.github.aedev.flow.data.recommendation.SessionIntent
 import io.github.aedev.flow.data.recommendation.UserBrain
 import org.junit.Test
 
@@ -666,5 +667,44 @@ class HomeFeedLogicTest {
         val seeds = feedSeedInputs(feed, now = 1L, max = 10, relatedPickIds = setOf("related"))
 
         assertThat(seeds.map { it.id }).containsExactly("discovery")
+    }
+
+    @Test
+    fun `home feed quotas shift from subscriptions to discovery when user fatigue occurs`() {
+        val fatiguedIntent = SessionIntent(consecutiveSkips = 3)
+        val quotas = homeFeedQuotas(40, subCount = 12, totalInteractions = 200, sessionIntent = fatiguedIntent)
+
+        // Normal mature: SUBS=16 (40%), DISCOVERY=10 (25%)
+        // Fatigued: SUBS drops by 15% (6 slots -> 10), DISCOVERY increases by 15% (6 slots -> 16)
+        assertThat(quotas[FeedSource.SUBS]).isEqualTo(10)
+        assertThat(quotas[FeedSource.DISCOVERY]).isEqualTo(16)
+        assertThat(quotas[FeedSource.RELATED]).isEqualTo(10)
+        assertThat(quotas[FeedSource.CHANNEL_MEMORY]).isEqualTo(4)
+        assertThat(quotas.values.sum()).isEqualTo(40)
+    }
+
+    @Test
+    fun `home feed quotas elevate related lane when strong session craving is detected`() {
+        val cravingIntent =
+            SessionIntent(
+                activeCravingTopic = "science",
+                cravingIntensity = 1.0f,
+            )
+        val quotas = homeFeedQuotas(40, subCount = 12, totalInteractions = 200, sessionIntent = cravingIntent)
+
+        // Normal mature: RELATED=10 (25%). With max craving, RELATED elevated by ~15% (to 16)
+        assertThat(quotas[FeedSource.RELATED]).isGreaterThan(10)
+        assertThat(quotas[FeedSource.SUBS]).isLessThan(16)
+        assertThat(quotas.values.sum()).isEqualTo(40)
+    }
+
+    @Test
+    fun `home feed quotas with zero subscriptions adapts cleanly to fatigue`() {
+        val fatiguedIntent = SessionIntent(consecutiveSkips = 4)
+        val quotas = homeFeedQuotas(40, subCount = 0, totalInteractions = 200, sessionIntent = fatiguedIntent)
+
+        assertThat(quotas[FeedSource.SUBS]).isEqualTo(0)
+        assertThat(quotas[FeedSource.DISCOVERY]).isGreaterThanOrEqualTo(18)
+        assertThat(quotas.values.sum()).isEqualTo(40)
     }
 }
