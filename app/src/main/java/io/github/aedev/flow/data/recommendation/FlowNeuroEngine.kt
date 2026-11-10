@@ -1674,7 +1674,9 @@ class FlowNeuroEngine internal constructor(
         }
 
         val counts = recentTopics.groupingBy { it }.eachCount()
-        val (topTopic, count) = counts.maxByOrNull { it.value } ?: (null to 0)
+        val topEntry = counts.maxByOrNull { it.value }
+        val topTopic = topEntry?.key
+        val count = topEntry?.value ?: 0
 
         if (topTopic != null && count >= 2) {
             val now = System.currentTimeMillis()
