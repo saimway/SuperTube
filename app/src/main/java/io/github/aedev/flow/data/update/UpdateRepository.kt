@@ -63,7 +63,14 @@ class UpdateRepository
         val latest: StateFlow<AppRelease?> = _latest.asStateFlow()
 
         /** Asks GitHub now. Throws when the request fails, so a check the user started can say so. */
-        suspend fun fetch(): AppRelease? = mutex.withLock { fetchLocked() }
+        suspend fun fetch(): AppRelease? =
+            mutex.withLock {
+                try {
+                    fetchLocked()
+                } catch (e: Exception) {
+                    _latest.value ?: throw e
+                }
+            }
 
         /**
          * For the automatic checks: fetches only once the cooldown has passed, and returns a release
@@ -101,6 +108,7 @@ class UpdateRepository
                             .Builder()
                             .url(if (isNightly) NIGHTLY_RELEASE_API else STABLE_RELEASE_API)
                             .header("Accept", GITHUB_JSON)
+                            .header("User-Agent", "SuperTube/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})")
                             .cacheControl(CacheControl.FORCE_NETWORK)
                             .build()
                     client.newCall(request).execute().use { response ->

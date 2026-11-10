@@ -1,6 +1,6 @@
-# SuperTube v3.0.5
+# SuperTube v3.0.6
 
-SuperTube v3.0.5 introduces full TV shows streaming directly inside the Movies section with direct embed controls, season and episode switching, recently watched shelves with history deletion, Shorts bottom navigation tap-to-refresh with right-edge thumb ergonomics, and extensive recommendation algorithm tuning to eliminate regional song dumps and repetition on refresh.
+SuperTube v3.0.6 brings full TV shows streaming directly inside the Movies section with direct embed controls, season and episode switching, recently watched shelves with history deletion, Shorts bottom navigation tap-to-refresh with right-edge thumb ergonomics, recommendation algorithm tuning to eliminate regional song dumps and repetition on refresh, and hardened in-app updater network resilience.
 
 ## Highlights
 
@@ -14,4 +14,5 @@ SuperTube v3.0.5 introduces full TV shows streaming directly inside the Movies s
   - Shorts refresh records all displayed shorts as seen and rotates discovery queries to guarantee new content.
 - **Shorts Navigation Tap-to-Refresh**: Tapping the Shorts navigation icon while scrolled down returns to the top short; tapping while at the top triggers a feed refresh with silent 3-stage exponential-backoff retries.
 - **Shorts Right-Edge Thumb Controls**: Action buttons (like, comments, save, share, more) sit flush against the right bezel with semi-transparent buttons for thumb comfort and maximum video visibility.
+- **Hardened In-App Updater**: Added official User-Agent headers and graceful fallback to cached release information to resist GitHub API rate limits and connection hiccups.
 - **Sleeping Lifecycle Discipline**: TV and movie network operations remain completely dormant until the section is actively opened, aborting instantly on exit.

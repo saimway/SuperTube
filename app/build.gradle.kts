@@ -57,8 +57,8 @@ android {
         applicationId = "com.supertube"
         minSdk = 26
         targetSdk = 36
-        versionCode = 25
-        versionName = "3.0.5"
+        versionCode = 26
+        versionName = "3.0.6"
 
         buildConfigField("int", "NIGHTLY_RUN", "0")
         buildConfigField("String", "APP_LANGUAGE_TAGS", "\"${(listOf("en") + translatedLocaleTags()).joinToString(",")}\"")

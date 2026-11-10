@@ -104,7 +104,9 @@ class SettingsHomeViewModel
                     runCatching { updates.fetch() }
                         .fold(
                             onSuccess = { info -> info?.let { UpdateCheckState.Available(it) } ?: UpdateCheckState.UpToDate },
-                            onFailure = { UpdateCheckState.Failed },
+                            onFailure = {
+                                updates.latest.value?.let { UpdateCheckState.Available(it) } ?: UpdateCheckState.Failed
+                            },
                         )
                 _updateCheck.value = result
             }
