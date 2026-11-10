@@ -86,4 +86,21 @@ class FlowNeuroEngineUnsuppressTest {
             // Assert
             assertThat(saved).isEmpty()
         }
+
+    @Test
+    fun `getSessionIntent derives fatigue and craving correctly`() =
+        runTest {
+            // Arrange: default intent with no topics
+            val initialIntent = engine.getSessionIntent()
+            assertThat(initialIntent.consecutiveSkips).isEqualTo(0)
+            assertThat(initialIntent.activeCravingTopic).isNull()
+            assertThat(initialIntent.cravingIntensity).isEqualTo(0.0f)
+            assertThat(initialIntent.discoveryBias).isEqualTo(0.0f)
+
+            // Note session topics
+            engine.noteSessionTopics(listOf("science", "science", "gaming"))
+            val cravingIntent = engine.getSessionIntent()
+            assertThat(cravingIntent.activeCravingTopic).isEqualTo("science")
+            assertThat(cravingIntent.cravingIntensity).isGreaterThan(0.5f)
+        }
 }

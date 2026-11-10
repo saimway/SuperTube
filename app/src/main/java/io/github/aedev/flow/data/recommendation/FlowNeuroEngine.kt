@@ -235,6 +235,10 @@ class FlowNeuroEngine internal constructor(
             videoId: String,
         ) = getInstance(context).unsuppressVideo(videoId)
 
+        fun getSessionIntent(): SessionIntent = instance?.getSessionIntent() ?: SessionIntent()
+
+        fun getSessionIntent(context: Context): SessionIntent = getInstance(context).getSessionIntent()
+
         suspend fun onVideoInteraction(
             video: Video,
             interactionType: InteractionType,
@@ -1642,6 +1646,58 @@ class FlowNeuroEngine internal constructor(
         }
     }
 
+    /**
+     * Derives current session intent, including consecutive skips (fatigue dial),
+     * real-time craving topic and intensity, and discovery bias.
+     */
+    fun getSessionIntent(): SessionIntent {
+        val brain = currentUserBrain
+        val skips = brain.consecutiveSkips
+        val discoveryBias =
+            if (skips >= 3) {
+                ((skips - 2) * 0.25f).coerceIn(0f, 1f)
+            } else {
+                0.0f
+            }
+
+        val recentTopics =
+            synchronized(sessionTopicHistory) {
+                sessionTopicHistory.takeLast(10)
+            }
+        if (recentTopics.isEmpty()) {
+            return SessionIntent(
+                consecutiveSkips = skips,
+                activeCravingTopic = null,
+                cravingIntensity = 0.0f,
+                discoveryBias = discoveryBias,
+            )
+        }
+
+        val counts = recentTopics.groupingBy { it }.eachCount()
+        val (topTopic, count) = counts.maxByOrNull { it.value } ?: (null to 0)
+
+        if (topTopic != null && count >= 2) {
+            val now = System.currentTimeMillis()
+            val isRejected = NeuroScoring.hasActiveTopicRejection(topTopic, brain.rejectionPatterns, now)
+            if (!isRejected) {
+                val intensity = (count.toFloat() / recentTopics.size.toFloat()).coerceIn(0f, 1f)
+                return SessionIntent(
+                    consecutiveSkips = skips,
+                    activeCravingTopic = topTopic,
+                    cravingIntensity = intensity,
+                    discoveryBias = discoveryBias,
+                )
+            }
+        }
+
+        return SessionIntent(
+            consecutiveSkips = skips,
+            activeCravingTopic = null,
+            cravingIntensity = 0.0f,
+            discoveryBias = discoveryBias,
+        )
+    }
+
     private fun adjustVectorByRejection(
         current: ContentVector,
         target: ContentVector,
@@ -1683,6 +1739,7 @@ class FlowNeuroEngine internal constructor(
                         brain,
                         depth = depth,
                         channelEdges = coWatchEdges(brain),
+                        intent = getSessionIntent(),
                     ) { b -> getPersona(b) }
 
                 var candidates =
@@ -2284,6 +2341,7 @@ class FlowNeuroEngine internal constructor(
                     exploreWeight = exploreWeight,
                     categoryOf = categoryStore::categoryOf,
                     coWatchPrior = NeuroCoWatchStore.neighbours(coWatchEdges(brain, now)) { isWatchedChannel(brain, it) },
+                    sessionIntent = getSessionIntent(),
                 )
 
             // Jitter magnitude is invariant across candidates in a single rank() call
