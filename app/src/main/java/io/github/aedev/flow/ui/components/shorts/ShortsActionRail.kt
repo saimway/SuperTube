@@ -41,11 +41,12 @@ import androidx.compose.ui.unit.dp
 import io.github.aedev.flow.R
 import io.github.aedev.flow.ui.components.shared.ChannelAvatarImage
 import io.github.aedev.flow.ui.components.videoplayer.controls.PlayerPillIconButton
+import io.github.aedev.flow.ui.theme.PlayerScrimAffordance
 import io.github.aedev.flow.ui.theme.PlayerScrimContent
 import io.github.aedev.flow.ui.theme.PlayerScrimPanel
 
 private const val DISC_SPIN_MS = 4_000
-private val RailSpacing = 16.dp
+private val RailSpacing = 14.dp
 private val RailButtonSize = 44.dp
 private val RailIconSize = 24.dp
 private val RailLabelSpacing = 2.dp
@@ -132,6 +133,7 @@ private fun ShortsRailAction(
             contentDescription = contentDescription,
             buttonSize = RailButtonSize,
             iconSize = RailIconSize,
+            containerColor = PlayerScrimAffordance,
             contentColor = contentColor,
             haptic = HapticFeedbackType.TextHandleMove,
         )

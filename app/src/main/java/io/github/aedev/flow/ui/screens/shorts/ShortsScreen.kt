@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.LinearProgressIndicator
@@ -39,6 +40,8 @@ import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.player.GlobalPlayerState
 import io.github.aedev.flow.player.shorts.ShortsPlayerPool
+import io.github.aedev.flow.ui.OnTabReselected
+import io.github.aedev.flow.ui.components.layout.navigation.FlowTab
 import io.github.aedev.flow.ui.components.shared.CommentSortFilter
 import io.github.aedev.flow.ui.components.shared.FlowCommentsBottomSheet
 import io.github.aedev.flow.ui.components.shared.FlowDescriptionBottomSheet
@@ -119,6 +122,19 @@ fun ShortsScreen(
             applyVideoCommentFilters(comments, commentSortFilter, commentsTimedOnly)
         }
 
+    var activePagerState by remember { mutableStateOf<PagerState?>(null) }
+
+    if (source == ShortsQueueSource.Feed) {
+        OnTabReselected(FlowTab.Shorts.route) {
+            val pager = activePagerState
+            if (pager != null && pager.currentPage > 0) {
+                pager.animateScrollToPage(0)
+            } else {
+                viewModel.refreshFeed(source)
+            }
+        }
+    }
+
     LaunchedEffect(source) { viewModel.load(source) }
 
     // Release the pool on the way out — unless a later Shorts screen has claimed it in the meantime.
@@ -167,6 +183,10 @@ fun ShortsScreen(
 
             uiState.shorts.isNotEmpty() -> {
                 val pagerState = rememberPagerState(initialPage = uiState.currentIndex, pageCount = { uiState.shorts.size })
+                DisposableEffect(pagerState) {
+                    activePagerState = pagerState
+                    onDispose { activePagerState = null }
+                }
                 ShortsPipActionEffect(pagerState = pagerState, isInPip = isInPip)
 
                 LaunchedEffect(pagerState.currentPage) { viewModel.updateCurrentIndex(pagerState.currentPage) }
@@ -232,6 +252,15 @@ fun ShortsScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .align(Alignment.BottomCenter),
+                    )
+                }
+
+                if (uiState.isRefreshing && !isInPip) {
+                    LinearProgressIndicator(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter),
                     )
                 }
             }

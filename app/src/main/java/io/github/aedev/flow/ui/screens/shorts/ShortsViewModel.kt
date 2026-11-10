@@ -48,6 +48,7 @@ import io.github.aedev.flow.utils.OriginalTextPolicy
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,7 @@ class ShortsViewModel
         private var queue: ShortsQueueController? = null
         private var loadedSource: ShortsQueueSource? = null
         private var loadJob: Job? = null
+        private var refreshJob: Job? = null
 
         private val prefetch =
             FeedPrefetchQueue(
@@ -223,6 +225,73 @@ class ShortsViewModel
             loadedSource = null
             _uiState.value = _uiState.value.copy(error = null)
             load(source)
+        }
+
+        /**
+         * Refreshes the feed for [source] silently.
+         * Discards stale cached pagers, creates a fresh queue controller, and attempts to load.
+         * Errors are caught, logged, and retried silently with exponential backoff up to 3 times (1s, 2s, 4s).
+         * Never displays error screens or snackbars if existing shorts are already loaded.
+         */
+        fun refreshFeed(source: ShortsQueueSource = ShortsQueueSource.Feed) {
+            if (_uiState.value.isRefreshing) return
+            refreshJob?.cancel()
+            refreshJob =
+                viewModelScope.launch(PerformanceDispatcher.networkIO) {
+                    _uiState.update { it.copy(isRefreshing = true) }
+                    try {
+                        // Discard cached pager in repository to ensure fresh items
+                        feed.clearCaches()
+
+                        val resolved = queueFactory.resolve(source)
+                        var retryCount = 0
+                        val maxRetries = 3
+                        var newController: ShortsQueueController? = null
+
+                        while (retryCount < maxRetries) {
+                            try {
+                                val controller = queueFactory.create(resolved)
+                                controller.loadInitial(null)
+                                newController = controller
+                                break
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                retryCount++
+                                Log.w(TAG, "Silent retry $retryCount for shorts feed refresh failed", e)
+                                if (retryCount < maxRetries) {
+                                    delay(1000L * (1 shl (retryCount - 1))) // 1s, 2s, 4s
+                                }
+                            }
+                        }
+
+                        if (newController != null) {
+                            queue = newController
+                            loadedSource = source
+                            val items = newController.items.value
+                            _uiState.update {
+                                it.copy(
+                                    shorts = items,
+                                    currentIndex = 0,
+                                    isRefreshing = false,
+                                    error = null,
+                                )
+                            }
+                            prefetchPlaybackStreams(listOfNotNull(items.getOrNull(0)?.id, items.getOrNull(1)?.id))
+                            onScreenVisible()
+                        } else {
+                            // If all retries failed and no shorts were ever loaded, surface the error
+                            _uiState.update { state ->
+                                state.copy(
+                                    isRefreshing = false,
+                                    error = if (state.shorts.isEmpty()) context.getString(R.string.error_failed_to_load_shorts) else null,
+                                )
+                            }
+                        }
+                    } finally {
+                        _uiState.update { it.copy(isRefreshing = false) }
+                    }
+                }
         }
 
         fun loadMoreShorts() {
@@ -622,4 +691,5 @@ data class ShortsUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val error: String? = null,
+    val isRefreshing: Boolean = false,
 )

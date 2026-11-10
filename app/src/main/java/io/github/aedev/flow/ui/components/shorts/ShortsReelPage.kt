@@ -68,8 +68,8 @@ private const val FAST_FORWARD_SPEED = 2.0f
 private const val CENTRE_TAP_MIN = 0.25f
 private const val CENTRE_TAP_MAX = 0.75f
 private val ChromeStartPadding = 16.dp
-private val ChromeEndPadding = 8.dp
-private val MetadataEndPadding = 16.dp
+private val ChromeEndPadding = 0.dp
+private val MetadataEndPadding = 12.dp
 private val AutoScrollBadgeEndPadding = 16.dp
 
 @Composable
@@ -365,6 +365,7 @@ internal fun ShortsReelPage(
                     channelAvatarUrl = short.channelThumbnailUrl,
                     channelName = short.channelName,
                     isDiscSpinning = isActive && pageState.isPlaying,
+                    modifier = Modifier.padding(end = 2.dp),
                 )
             }
         }

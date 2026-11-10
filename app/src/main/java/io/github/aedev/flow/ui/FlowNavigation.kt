@@ -36,6 +36,8 @@ import io.github.aedev.flow.ui.screens.movies.MoviePlayerScreen
 import io.github.aedev.flow.ui.screens.movies.MovieSearchScreen
 import io.github.aedev.flow.ui.screens.movies.MovieViewModel
 import io.github.aedev.flow.ui.screens.movies.MoviesScreen
+import io.github.aedev.flow.ui.screens.movies.TvDetailScreen
+import io.github.aedev.flow.ui.screens.movies.TvPlayerScreen
 import io.github.aedev.flow.ui.screens.movies.sharedMovieViewModel
 import io.github.aedev.flow.ui.screens.music.sharedMusicPlayerViewModel
 import io.github.aedev.flow.ui.screens.notifications.NotificationScreen
@@ -302,9 +304,67 @@ fun NavGraphBuilder.flowAppGraph(
             onPlayMovie = { movieId ->
                 navController.navigate("moviePlayer/$movieId")
             },
+            onTvClick = { tvId ->
+                navController.navigate("tvShow/$tvId")
+            },
+            onPlayTv = { tvId, season, episode ->
+                navController.navigate("tvPlayer/$tvId/$season/$episode")
+            },
             onSearchClick = {
                 navController.navigate("movieSearch")
             },
+        )
+    }
+
+    composable(
+        route = "tvShow/{id}",
+        arguments = listOf(
+            navArgument("id") { type = NavType.LongType },
+        ),
+    ) { backStackEntry ->
+        currentRoute.value = "tvShow"
+        val tvId = backStackEntry.arguments?.getLong("id") ?: 0L
+        val movieViewModel = sharedMovieViewModel()
+        TvDetailScreen(
+            tvId = tvId,
+            viewModel = movieViewModel,
+            onBack = { navController.popBackStack() },
+            onPlayEpisode = { id, season, episode, serverId ->
+                navController.navigate("tvPlayer/$id/$season/$episode?server=$serverId")
+            },
+            onTvClick = { id ->
+                navController.navigate("tvShow/$id")
+            },
+        )
+    }
+
+    composable(
+        route = "tvPlayer/{id}/{season}/{episode}?server={server}",
+        arguments = listOf(
+            navArgument("id") { type = NavType.LongType },
+            navArgument("season") { type = NavType.IntType },
+            navArgument("episode") { type = NavType.IntType },
+            navArgument("server") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            },
+        ),
+    ) { backStackEntry ->
+        currentRoute.value = "tvPlayer"
+        val movieViewModel = sharedMovieViewModel()
+        val tvId = backStackEntry.arguments?.getLong("id") ?: 0L
+        val season = backStackEntry.arguments?.getInt("season") ?: 1
+        val episode = backStackEntry.arguments?.getInt("episode") ?: 1
+        val serverId = backStackEntry.arguments?.getString("server")
+        TvPlayerScreen(
+            tvId = tvId,
+            initialSeason = season,
+            initialEpisode = episode,
+            initialServerId = serverId,
+            viewModel = movieViewModel,
+            onBack = { navController.popBackStack() },
+            onNavigateToDetail = { id -> navController.navigate("tvShow/$id") },
         )
     }
 

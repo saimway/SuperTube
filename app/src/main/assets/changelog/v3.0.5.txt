@@ -1,0 +1,25 @@
+SUPERTUBE CHANGE LOG
+VERSION: 3.0.5
+DATE: 2026-11-10
+STATUS: release
+
+HIGHLIGHTS
+- TV Shows in Movies section: integrated full TV show catalog with season & episode browsing, episode switching drawer, and automatic resume memory
+- Shorts tap-to-refresh: re-tapping the Shorts navigation bar icon smoothly scrolls back to the top short or refreshes the feed
+- Silent Shorts refresh: seamless background retry with exponential backoff on feed refresh, completely eliminating error dialogs and snackbars
+- Shorts flush right-edge layout: repositioned action buttons flush to the far right bezel with ergonomic semi-transparent buttons and expanded video canvas
+- Zero background battery drain: strict sleeping lifecycle for TV and movie network calls, waking only when entering the section
+
+SHORTS ENHANCEMENTS
+- Bottom bar navigation reselect: tapping the Shorts icon while scrolled down returns to reel #0; tapping at the top fetches fresh recommendations
+- Resilient background retry: 3-stage silent retry loop (1s, 2s, 4s) ensuring interrupted network connections never discard your loaded queue
+- Error dialog suppression: feed refresh errors are caught silently, preserving current playback and keeping modal error dialogs away
+- Right-bezel aligned controls: reduced edge padding to 0dp (with 2dp glass curvature margin), freeing up 80%+ of central screen space for vertical video
+- Thumb-friendly action buttons: clean PlayerScrimAffordance semi-transparent circular buttons for effortless one-handed thumb interaction
+
+MOVIES & TV SHOWS
+- TV show catalog integration: browse trending, popular, and top-rated TV shows alongside movies
+- Seasons & episode selector: easily switch between seasons and episodes with detailed metadata and episode thumbnails
+- Seamless episode resumption: remembers the exact second and episode watched across all TV shows and movies
+- Complete sleeping lifecycle: zero network activity until section is entered, instantly cancelling pending requests on departure
+- Unified 7-layer ad shield: full popup ad blocker and sandbox engine protecting all TV streaming servers
