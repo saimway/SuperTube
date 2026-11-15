@@ -135,6 +135,43 @@ data class TvShowDetail(
     val ratingFormatted: String = if (voteAverage > 0) String.format(Locale.US, "%.1f", voteAverage) else "",
 )
 
+// -----------------------------------------------------------------------------
+// Unified Search Models
+// -----------------------------------------------------------------------------
+
+@Immutable
+sealed interface MediaSearchResult {
+    val id: Long
+    val posterUrl: String?
+    val ratingFormatted: String
+    val releaseYear: String
+    val title: String
+
+    @Immutable
+    data class Movie(val movie: MovieItem) : MediaSearchResult {
+        override val id: Long get() = movie.id
+        override val posterUrl: String? get() = movie.posterUrl
+        override val ratingFormatted: String get() = movie.ratingFormatted
+        override val releaseYear: String get() = movie.releaseYear
+        override val title: String get() = movie.title
+    }
+
+    @Immutable
+    data class TvShow(val show: TvShowItem) : MediaSearchResult {
+        override val id: Long get() = show.id
+        override val posterUrl: String? get() = show.posterUrl
+        override val ratingFormatted: String get() = show.ratingFormatted
+        override val releaseYear: String get() = show.releaseYear
+        override val title: String get() = show.name
+    }
+}
+
+enum class SearchFilterType {
+    ALL,
+    MOVIES,
+    TV_SHOWS,
+}
+
 @Immutable
 data class MovieServer(
     val id: String,

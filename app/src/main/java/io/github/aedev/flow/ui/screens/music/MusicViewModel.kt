@@ -176,7 +176,12 @@ class MusicViewModel
                     .map { Triple(it.history, it.forYouTracks, it.listenAgain) }
                     .distinctUntilChanged()
                     .collectLatest { (history, forYou, listenAgain) ->
-                        val pool = (history + forYou + listenAgain).audioMusicOnly().take(40)
+                        val pool =
+                            (history + forYou + listenAgain)
+                                .audioMusicOnly()
+                                .filter { it.videoId.isNotBlank() }
+                                .distinctBy { it.videoId }
+                                .take(40)
                         if (pool.isEmpty()) return@collectLatest
                         val ranked = musicBrain.rankTracks(pool, "heavy_rotation").take(26)
                         if (ranked.isNotEmpty()) {

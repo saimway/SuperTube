@@ -105,6 +105,15 @@ class ShortsViewModel
 
         private val savedShortIds = MutableStateFlow<Set<String>>(emptySet())
 
+        private data class ShortSwipeRecord(
+            val shortId: String,
+            val dwellMs: Long,
+            val isSkip: Boolean,
+            val timestamp: Long = System.currentTimeMillis(),
+        )
+
+        private val recentShortSwipes = ArrayDeque<ShortSwipeRecord>()
+
         private val _snackbarMessage = MutableStateFlow<String?>(null)
         val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
 
@@ -523,6 +532,14 @@ class ShortsViewModel
             positionMs: Long,
             durationMs: Long,
         ) {
+            val isSkip = positionMs < 2500L
+            synchronized(recentShortSwipes) {
+                recentShortSwipes.addLast(ShortSwipeRecord(short.id, positionMs, isSkip))
+                while (recentShortSwipes.size > 10) {
+                    recentShortSwipes.removeFirst()
+                }
+            }
+
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
                 val video = short.toVideo()
                 val signal = ShortWatchClassifier.classifyAbandon(positionMs, durationMs, video.duration)
@@ -545,6 +562,18 @@ class ShortsViewModel
             positionMs: Long,
             durationMs: Long,
         ) {
+            val rapidSkips =
+                synchronized(recentShortSwipes) {
+                    recentShortSwipes.takeLast(5).count { it.isSkip }
+                }
+            val isTopicStopping = rapidSkips >= 2
+            synchronized(recentShortSwipes) {
+                recentShortSwipes.addLast(ShortSwipeRecord(short.id, positionMs, isSkip = false))
+                while (recentShortSwipes.size > 10) {
+                    recentShortSwipes.removeFirst()
+                }
+            }
+
             viewModelScope.launch(PerformanceDispatcher.diskIO) {
                 val video = short.toVideo()
                 val signal = ShortWatchClassifier.classify(positionMs, durationMs, video.duration)
@@ -554,6 +583,7 @@ class ShortsViewModel
                 runCatching {
                     FlowNeuroEngine.onVideoInteraction(video.copy(isShort = true), signal.interaction, percentWatched = signal.percent)
                     FlowNeuroEngine.recordSeenShorts(listOf(video.id))
+                    FlowNeuroEngine.onShortDwell(short, positionMs, isTopicStopping)
                 }.onFailure { e -> Log.w(TAG, "Failed to record watched short in FlowNeuro", e) }
             }
         }
@@ -603,8 +633,28 @@ class ShortsViewModel
             }
         }
 
-        /** A reel the user stayed on becomes a weak seed for the chains that follow this session. */
-        fun onReelDwelled(short: ShortVideo) = feed.noteDwell(short)
+        /** A reel the user stayed on becomes a weak seed for the chains that follow this session and informs topic-stopping. */
+        fun onReelDwelled(
+            short: ShortVideo,
+            dwellMs: Long = 8000L,
+            durationMs: Long = 0L,
+        ) {
+            feed.noteDwell(short)
+            val rapidSkips =
+                synchronized(recentShortSwipes) {
+                    recentShortSwipes.takeLast(5).count { it.isSkip }
+                }
+            val isHighDwell = dwellMs >= 8000L || (durationMs > 0L && dwellMs >= (durationMs * 0.60f).toLong())
+            val isTopicStopping = rapidSkips >= 2 && isHighDwell
+
+            viewModelScope.launch(PerformanceDispatcher.networkIO) {
+                try {
+                    FlowNeuroEngine.onShortDwell(short, dwellMs, isTopicStopping)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to record dwell in FlowNeuro", e)
+                }
+            }
+        }
 
         fun onScreenVisible() {
             prefetch

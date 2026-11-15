@@ -173,6 +173,8 @@ internal fun MusicUiState.withUniqueLazyContent(): MusicUiState {
     val uniqueArtistsForYou = artistsForYou.distinctByNonBlankKeyOrSelf(ArtistDetails::channelId)
     val uniqueRecommended = recommendedTracks.uniqueMusicTracks()
     val uniqueListenAgain = listenAgain.uniqueMusicTracks()
+    val uniqueSpeedDial = speedDialTracks.uniqueMusicTracks()
+    val uniqueRotation = rotationTracks.uniqueMusicTracks()
     val uniqueTrending = trendingSongs.uniqueMusicTracks()
     val uniqueChartPlaylists = chartPlaylists.uniqueMusicPlaylists()
     val uniqueChartArtists = chartArtists.distinctByNonBlankKeyOrSelf(ArtistDetails::channelId)
@@ -213,6 +215,8 @@ internal fun MusicUiState.withUniqueLazyContent(): MusicUiState {
         uniqueArtistsForYou === artistsForYou &&
         uniqueRecommended === recommendedTracks &&
         uniqueListenAgain === listenAgain &&
+        uniqueSpeedDial === speedDialTracks &&
+        uniqueRotation === rotationTracks &&
         uniqueTrending === trendingSongs &&
         uniqueChartPlaylists === chartPlaylists &&
         uniqueChartArtists === chartArtists &&
@@ -247,6 +251,8 @@ internal fun MusicUiState.withUniqueLazyContent(): MusicUiState {
         artistsForYou = uniqueArtistsForYou,
         recommendedTracks = uniqueRecommended,
         listenAgain = uniqueListenAgain,
+        speedDialTracks = uniqueSpeedDial,
+        rotationTracks = uniqueRotation,
         trendingSongs = uniqueTrending,
         chartPlaylists = uniqueChartPlaylists,
         chartArtists = uniqueChartArtists,
@@ -273,7 +279,36 @@ internal fun MusicUiState.withUniqueLazyContent(): MusicUiState {
     )
 }
 
-private fun List<MusicTrack>.uniqueMusicTracks(): List<MusicTrack> = distinctByNonBlankKeyOrSelf(MusicTrack::videoId)
+private fun List<MusicTrack>.uniqueMusicTracks(): List<MusicTrack> {
+    if (isEmpty()) return this
+    val seenIds = HashSet<String>()
+    val seenSignatures = HashSet<String>()
+    var changed = false
+    val result = ArrayList<MusicTrack>(size)
+    for (track in this) {
+        val idValid = track.videoId.isNotBlank()
+        if (!idValid) {
+            changed = true
+            continue
+        }
+        val idUnique = seenIds.add(track.videoId)
+        val normTitle = track.title.trim().lowercase()
+        val normArtist = track.artist.trim().lowercase()
+        val sigKey =
+            if (normTitle.isNotBlank() && normArtist.isNotBlank()) {
+                "$normTitle|$normArtist"
+            } else {
+                null
+            }
+        val sigUnique = sigKey == null || seenSignatures.add(sigKey)
+        if (idUnique && sigUnique) {
+            result.add(track)
+        } else {
+            changed = true
+        }
+    }
+    return if (changed) result else this
+}
 
 private fun List<MusicPlaylist>.uniqueMusicPlaylists(): List<MusicPlaylist> = distinctByNonBlankKeyOrSelf(MusicPlaylist::id)
 

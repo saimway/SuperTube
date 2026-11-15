@@ -3,6 +3,7 @@ package io.github.aedev.flow.ui.screens.movies
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.os.Message
@@ -83,6 +84,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -255,7 +257,14 @@ fun TvPlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = remember(context) {
+        var cur = context
+        while (cur is ContextWrapper) {
+            if (cur is Activity) return@remember cur
+            cur = cur.baseContext
+        }
+        null
+    }
     val scope = rememberCoroutineScope()
 
     var currentSeason by remember(tvId, initialSeason) { mutableIntStateOf(initialSeason) }
@@ -302,6 +311,8 @@ fun TvPlayerScreen(
     var showServerSheet by remember { mutableStateOf(false) }
     var showEpisodeSheet by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
+    var customView by remember { mutableStateOf<View?>(null) }
+    var customViewCallback by remember { mutableStateOf<WebChromeClient.CustomViewCallback?>(null) }
     var showResumeBadge by remember { mutableStateOf(savedPosition > 10) }
     var currentPositionSec by remember { mutableStateOf(0.0) }
     var currentDurationSec by remember { mutableStateOf(0.0) }
@@ -310,6 +321,11 @@ fun TvPlayerScreen(
     val autoNextDismissed = autoNextDismissedForEpisode == (currentSeason to currentEpisode)
 
     fun playEpisode(season: Int, episode: Int) {
+        if (customViewCallback != null) {
+            customViewCallback?.onCustomViewHidden()
+            customViewCallback = null
+            customView = null
+        }
         currentSeason = season
         currentEpisode = episode
         isStreamPlaying = false
@@ -503,6 +519,17 @@ fun TvPlayerScreen(
             onErrorOccurred = { error ->
                 switchToNextServer("Playback error: $error")
             },
+            onShowCustomView = { view, callback ->
+                customView = view
+                customViewCallback = callback
+                isFullscreen = true
+            },
+            onHideCustomView = {
+                customViewCallback?.onCustomViewHidden()
+                customViewCallback = null
+                customView = null
+                isFullscreen = false
+            },
         ).also { wv ->
             webViewRef = wv
             wv.loadUrl(currentServer.getTvUrl(tvId, currentSeason, currentEpisode))
@@ -512,6 +539,11 @@ fun TvPlayerScreen(
     // Strict WebView lifecycle disposal
     DisposableEffect(webView) {
         onDispose {
+            customViewCallback?.onCustomViewHidden()
+            customViewCallback = null
+            (customView?.parent as? ViewGroup)?.removeView(customView)
+            customView = null
+            (webView.parent as? ViewGroup)?.removeView(webView)
             webView.stopLoading()
             webView.loadUrl("about:blank")
             webView.destroy()
@@ -521,6 +553,11 @@ fun TvPlayerScreen(
 
     BackHandler {
         if (isFullscreen) {
+            if (customViewCallback != null) {
+                customViewCallback?.onCustomViewHidden()
+                customViewCallback = null
+                customView = null
+            }
             isFullscreen = false
         } else {
             onBack()
@@ -549,15 +586,28 @@ fun TvPlayerScreen(
             // FULLSCREEN LANDSCAPE MODE
             // -------------------------------------------------------------
             Box(modifier = Modifier.fillMaxSize()) {
-                // Re-parent the existing persistent WebView without recreating it
-                AndroidView(
-                    factory = {
-                        (webView.parent as? ViewGroup)?.removeView(webView)
-                        webView
-                    },
-                    update = {},
-                    modifier = Modifier.fillMaxSize(),
-                )
+                if (customView != null) {
+                    key(customView) {
+                        AndroidView(
+                            factory = {
+                                (customView?.parent as? ViewGroup)?.removeView(customView)
+                                customView!!
+                            },
+                            update = {},
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                } else {
+                    // Re-parent the existing persistent WebView without recreating it
+                    AndroidView(
+                        factory = {
+                            (webView.parent as? ViewGroup)?.removeView(webView)
+                            webView
+                        },
+                        update = {},
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
 
                 // Non-blocking loading indicator along top edge in Fullscreen
                 if (isConnecting && !hasError) {
@@ -696,7 +746,14 @@ fun TvPlayerScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = { isFullscreen = false },
+                        onClick = {
+                            if (customViewCallback != null) {
+                                customViewCallback?.onCustomViewHidden()
+                                customViewCallback = null
+                                customView = null
+                            }
+                            isFullscreen = false
+                        },
                         modifier = Modifier.size(40.dp),
                     ) {
                         Surface(
@@ -888,6 +945,29 @@ fun TvPlayerScreen(
                                             null,
                                         )
                                     },
+                                )
+                            }
+                        }
+                    }
+
+                    // Fullscreen Expand Button (bottom right of player)
+                    IconButton(
+                        onClick = { isFullscreen = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.55f),
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.OpenInFull,
+                                    contentDescription = stringResource(R.string.fullscreen),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }
@@ -1443,6 +1523,8 @@ private fun createSandboxedWebView(
     onProgressUpdate: (currentSeconds: Double, durationSeconds: Double) -> Unit,
     onPageLoaded: () -> Unit,
     onErrorOccurred: (String) -> Unit,
+    onShowCustomView: (View?, WebChromeClient.CustomViewCallback?) -> Unit = { _, _ -> },
+    onHideCustomView: () -> Unit = {},
 ): WebView {
     val positionProvider = savedPositionSeconds ?: getSavedPositionSeconds
     return WebView(context).apply {
@@ -1694,6 +1776,14 @@ private fun createSandboxedWebView(
         }
 
         webChromeClient = object : WebChromeClient() {
+            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                onShowCustomView(view, callback)
+            }
+
+            override fun onHideCustomView() {
+                onHideCustomView()
+            }
+
             override fun onCreateWindow(
                 view: WebView?,
                 isDialog: Boolean,

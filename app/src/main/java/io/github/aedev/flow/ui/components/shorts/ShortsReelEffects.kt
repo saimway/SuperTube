@@ -211,9 +211,9 @@ internal fun ShortsReelPlaybackEffects(
                     recordWatched(position, duration)
                 }
 
-                if (!sessionState.hasReportedDwell && position >= DWELL_SEED_MS) {
+                if (!sessionState.hasReportedDwell && (position >= DWELL_SEED_MS || (duration > 0L && position >= (duration * 0.6f)))) {
                     sessionState.hasReportedDwell = true
-                    viewModel.onReelDwelled(short)
+                    viewModel.onReelDwelled(short, position, duration)
                 }
 
                 if (settings.playbackMode == SHORTS_PLAYBACK_AUTO_INTERVAL && !autoAdvanceState.hasAutoAdvanced) {

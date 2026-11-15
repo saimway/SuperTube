@@ -24,6 +24,7 @@ import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.recommendation.GraphSeedInput
 import io.github.aedev.flow.data.recommendation.NeighbourChannel
 import io.github.aedev.flow.data.recommendation.NeighbourChannelsRepository
+import io.github.aedev.flow.data.recommendation.NeuroDiscovery
 import io.github.aedev.flow.data.recommendation.NeuroScoring
 import io.github.aedev.flow.data.recommendation.RankTrace
 import io.github.aedev.flow.data.recommendation.UserBrain
@@ -524,15 +525,19 @@ class HomeViewModel
                     }.getOrElse { emptyList() }
                 if (cached.isEmpty()) return@launch
                 // Cards the viewer already had on screen are old news; only the rest come back (#1447).
+                // If unseen is empty because all cards were previously seen, fall back to displaying cached
+                // cards on cold start so the screen is never blank while network loads.
                 val feedHistory = runCatching { FlowNeuroEngine.getBrainSnapshot().feedHistory }.getOrDefault(emptyMap())
-                val unseen = unseenCachedCards(cached.filterWatched(watchedVideoIds.value)) { (feedHistory[it]?.showCount ?: 0) > 0 }
-                if (unseen.isEmpty()) return@launch
+                val filteredCached = cached.filterWatched(watchedVideoIds.value)
+                val unseen = unseenCachedCards(filteredCached) { (feedHistory[it]?.showCount ?: 0) > 0 }
+                val initialCards = unseen.ifEmpty { filteredCached.take(HOME_TARGET_SIZE) }
+                if (initialCards.isEmpty()) return@launch
 
                 // Shown before any network call: the collaboration avatars fill in after (#1301).
                 var shownIds = emptyList<String>()
                 _uiState.update { state ->
                     if (state.videos.isNotEmpty()) return@update state
-                    val videos = unseen
+                    val videos = initialCards
                     shownIds = videos.map { it.id }
                     cachedOnScreenIds = shownIds.toSet()
                     HomeFeedCache.update(videos, state.shorts)
@@ -728,7 +733,7 @@ class HomeViewModel
                         val mix =
                             assembleHomeFeed(
                                 lanes = lanes,
-                                onScreenIds = _uiState.value.videos.mapTo(HashSet()) { it.id },
+                                onScreenIds = if (forceRefresh) emptySet() else _uiState.value.videos.mapTo(HashSet()) { it.id },
                                 subCount = userSubs.size,
                                 totalInteractions = brain.totalInteractions,
                                 sessionIntent = FlowNeuroEngine.getSessionIntent(),
@@ -742,7 +747,7 @@ class HomeViewModel
                             .mapTo(relatedPickIds) { it.video.id }
 
                         if (finalMix.isEmpty()) {
-                            settleWithoutFeed(error = null)
+                            settleWithoutFeed(error = appContext.getString(R.string.home_refresh_failed))
                             return@launch
                         }
                         val relatedMetrics =
@@ -1509,14 +1514,14 @@ class HomeViewModel
         }
 
         /**
-         * Nothing to fall back to: the trending kiosk this used to load is retired, and the charts
-         * that replaced it belong on Explore, not mixed into the feed. The screen settles empty and
-         * offers a refresh instead of filling itself with unrelated content. A feed already on
-         * screen stays, still loading more, and the viewer is told the refresh failed (#1317).
+         * The Wave-1 fetch returned nothing or failed: if there was a feed on screen already (launch cache,
+         * earlier refresh) it stays, but stops showing a spinner. If there was none, it triggers fallback
+         * to starter queries, and if still empty, sets an error so the user can retry.
          */
-        private fun settleWithoutFeed(error: String?) {
+        private fun settleWithoutFeed(error: String? = null) {
             cachedOnScreenIds = null
             var keptFeed = false
+            val defaultError = error ?: appContext.getString(R.string.home_refresh_failed)
             _uiState.update {
                 keptFeed = it.isFlowFeed && it.videos.isNotEmpty()
                 if (keptFeed) {
@@ -1527,29 +1532,60 @@ class HomeViewModel
                         isRefreshing = false,
                         hasMorePages = false,
                         isFlowFeed = false,
-                        error = error,
+                        error = defaultError,
                     )
                 }
             }
-            if (keptFeed) refreshFailureEvents.trySend(Unit)
+            if (keptFeed) {
+                refreshFailureEvents.trySend(Unit)
+                return
+            }
+
+            // Screen has no feed to show: trigger fallback to starter queries so cold start / refresh doesn't stay blank
+            viewModelScope.launch(PerformanceDispatcher.networkIO) {
+                val starterVideos =
+                    try {
+                        val queries = NeuroDiscovery.STARTER_QUERIES.shuffled().take(3)
+                        queries.flatMap { query ->
+                            runCatching {
+                                withTimeoutOrNull(SEARCH_TIMEOUT_MS) { searchPages.firstPage(query) }
+                            }.getOrNull().orEmpty()
+                        }.distinctBy { it.id }.filterValid().filterWatched(watchedVideoIds.value)
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+
+                if (starterVideos.isNotEmpty()) {
+                    val fallbackFeed = starterVideos.take(HOME_TARGET_SIZE)
+                    HomeFeedCache.update(fallbackFeed, _uiState.value.shorts)
+                    _uiState.update {
+                        it.copy(
+                            videos = fallbackFeed,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isFlowFeed = true,
+                            error = null,
+                            lastRefreshTime = System.currentTimeMillis(),
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            error = defaultError,
+                            isLoading = false,
+                            isRefreshing = false,
+                            isFlowFeed = false,
+                        )
+                    }
+                }
+            }
         }
 
         /**
-         * The viewer's refresh. A load already running is the refresh: the indicator stays until it
-         * lands, and repeated pulls cannot stack pipelines (#1171).
+         * The viewer's refresh. Clears any pending held feed and reloads the feed freshly.
          */
         fun refreshFeed() {
-            if (_uiState.value.pendingFeed != null) {
-                // A feed newer than the one on screen is already here: the refresh is showing it.
-                settlePendingFeed(append = false)
-                return
-            }
-            // A pull while the cached cards wait on wave 1 asks for them to be replaced after all.
-            cachedOnScreenIds = null
-            if (feedJob?.isActive == true) {
-                _uiState.update { it.copy(isRefreshing = true) }
-                return
-            }
+            _uiState.update { it.copy(pendingFeed = null) }
             reloadFeed()
         }
 

@@ -276,9 +276,6 @@ class MusicRecommendationAlgorithm
 
         private suspend fun generateFallbackRecommendations(limit: Int): List<MusicTrack> =
             coroutineScope {
-                val candidates = mutableListOf<MusicTrack>()
-                val seenIds = mutableSetOf<String>()
-
                 // Gather User Signals
                 val favorites =
                     likedVideosRepository.getAllLikedVideos().firstOrNull()?.map {
@@ -291,12 +288,26 @@ class MusicRecommendationAlgorithm
                             channelId = "",
                             views = 0L,
                         )
-                    } ?: emptyList()
+                    }?.filter { it.videoId.isNotBlank() }?.distinctBy { it.videoId } ?: emptyList()
 
-                val history = playlistRepository.history.firstOrNull() ?: emptyList()
+                val history =
+                    playlistRepository.history.firstOrNull()
+                        ?.filter { it.videoId.isNotBlank() }
+                        ?.distinctBy { it.videoId } ?: emptyList()
 
                 // Seeds: Mix of history and favorites
-                val seeds = (history.take(5) + favorites.take(5)).shuffled().take(4)
+                val seeds =
+                    (history.take(5) + favorites.take(5))
+                        .filter { it.videoId.isNotBlank() }
+                        .distinctBy { it.videoId }
+                        .shuffled()
+                        .take(4)
+
+                val candidates = mutableListOf<MusicTrack>()
+                val seenIds =
+                    (seeds.map { it.videoId } + history.map { it.videoId })
+                        .filter { it.isNotBlank() }
+                        .toMutableSet()
 
                 val deferreds = mutableListOf<kotlinx.coroutines.Deferred<Unit>>()
 

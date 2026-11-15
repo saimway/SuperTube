@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.aedev.flow.data.movie.MediaSearchResult
 import io.github.aedev.flow.data.movie.MovieDetail
 import io.github.aedev.flow.data.movie.MovieGenre
 import io.github.aedev.flow.data.movie.MovieItem
@@ -11,12 +12,14 @@ import io.github.aedev.flow.data.movie.MovieRepository
 import io.github.aedev.flow.data.movie.MovieServer
 import io.github.aedev.flow.data.movie.MovieShelf
 import io.github.aedev.flow.data.movie.MovieShelfCategory
+import io.github.aedev.flow.data.movie.SearchFilterType
 import io.github.aedev.flow.data.movie.TvEpisodeItem
 import io.github.aedev.flow.data.movie.TvShelf
 import io.github.aedev.flow.data.movie.TvShelfCategory
 import io.github.aedev.flow.data.movie.TvShowDetail
 import io.github.aedev.flow.data.movie.TvShowItem
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +46,9 @@ sealed interface MoviesUiState {
 data class MovieSearchUiState(
     val query: String = "",
     val results: List<MovieItem> = emptyList(),
+    val tvResults: List<TvShowItem> = emptyList(),
+    val unifiedResults: List<MediaSearchResult> = emptyList(),
+    val selectedFilter: SearchFilterType = SearchFilterType.ALL,
     val isSearching: Boolean = false,
     val page: Int = 1,
     val hasMore: Boolean = true,
@@ -187,7 +193,7 @@ class MovieViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collect { query ->
                     if (query.trim().isEmpty()) {
-                        _searchState.value = MovieSearchUiState()
+                        _searchState.value = MovieSearchUiState(selectedFilter = _searchState.value.selectedFilter)
                     } else {
                         performSearch(query, page = 1)
                     }
@@ -414,25 +420,63 @@ class MovieViewModel @Inject constructor(
         _searchState.value = _searchState.value.copy(isSearching = true, error = null)
 
         searchJob = viewModelScope.launch {
-            val result = repository.searchMovies(query, page)
-            result.fold(
-                onSuccess = { movies ->
-                    _searchState.value = _searchState.value.copy(
-                        query = query,
-                        results = if (page == 1) movies else (_searchState.value.results + movies).distinctBy { it.id },
-                        isSearching = false,
-                        page = page,
-                        hasMore = movies.isNotEmpty(),
-                    )
-                },
-                onFailure = { error ->
-                    _searchState.value = _searchState.value.copy(
-                        isSearching = false,
-                        error = error.message ?: "Search failed",
-                    )
-                },
+            val movieDeferred = async { repository.searchMovies(query, page) }
+            val tvDeferred = async { repository.searchTvShows(query, page) }
+
+            val movieResult = try {
+                movieDeferred.await()
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Result.failure(e)
+            }
+            val tvResult = try {
+                tvDeferred.await()
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Result.failure(e)
+            }
+
+            val newMovies = movieResult.getOrNull() ?: emptyList()
+            val newTvShows = tvResult.getOrNull() ?: emptyList()
+
+            val combinedMovies = if (page == 1) newMovies else (_searchState.value.results + newMovies).distinctBy { it.id }
+            val combinedTvShows = if (page == 1) newTvShows else (_searchState.value.tvResults + newTvShows).distinctBy { it.id }
+
+            val newUnified = buildList {
+                val maxLen = maxOf(newMovies.size, newTvShows.size)
+                for (i in 0 until maxLen) {
+                    if (i < newMovies.size) add(MediaSearchResult.Movie(newMovies[i]))
+                    if (i < newTvShows.size) add(MediaSearchResult.TvShow(newTvShows[i]))
+                }
+            }
+
+            val combinedUnified = if (page == 1) newUnified else (_searchState.value.unifiedResults + newUnified).distinctBy {
+                when (it) {
+                    is MediaSearchResult.Movie -> "movie_${it.movie.id}"
+                    is MediaSearchResult.TvShow -> "tv_${it.show.id}"
+                }
+            }
+
+            val hasMore = newMovies.isNotEmpty() || newTvShows.isNotEmpty()
+            val searchFailed = movieResult.isFailure && tvResult.isFailure && combinedUnified.isEmpty()
+
+            _searchState.value = _searchState.value.copy(
+                query = query,
+                results = combinedMovies,
+                tvResults = combinedTvShows,
+                unifiedResults = combinedUnified,
+                isSearching = false,
+                page = page,
+                hasMore = hasMore,
+                error = if (searchFailed) {
+                    movieResult.exceptionOrNull()?.message ?: tvResult.exceptionOrNull()?.message ?: "Search failed"
+                } else null,
             )
         }
+    }
+
+    fun setSearchFilter(filter: SearchFilterType) {
+        _searchState.value = _searchState.value.copy(selectedFilter = filter)
     }
 
     fun loadMoreSearchResults() {

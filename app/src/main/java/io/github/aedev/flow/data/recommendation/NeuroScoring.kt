@@ -73,6 +73,8 @@ internal object NeuroScoring {
     const val MOMENTUM_WINDOW = 10
     const val MOMENTUM_BOOST = 0.08
     const val MOMENTUM_THRESHOLD = 3
+    const val MUSIC_COMFORT_BOOST = 1.15
+    const val TOPIC_STOPPING_BOOST_MAX = 0.20
     const val CRAVING_BOOST_MAX = 0.12
     const val IMPRESSION_CACHE_MAX = 500
     const val IMPRESSION_DECAY_RATE = 0.1
@@ -559,7 +561,7 @@ internal object NeuroScoring {
     }
 
     /**
-     * Already-watched penalty with music exception.
+     * Already-watched penalty with music comfort boost exception.
      */
     fun calculateWatchedPenalty(
         video: Video,
@@ -569,12 +571,54 @@ internal object NeuroScoring {
 
         val isMusic = isMusicTrack(video)
         return when {
-            isMusic && watchEntry.percentWatched > WATCHED_THRESHOLD_HALF -> 1.0
+            isMusic && watchEntry.percentWatched > WATCHED_THRESHOLD_HALF -> MUSIC_COMFORT_BOOST
             watchEntry.percentWatched > WATCHED_THRESHOLD_FULL -> WATCHED_PENALTY_FULL
             watchEntry.percentWatched > WATCHED_THRESHOLD_HALF -> WATCHED_PENALTY_HALF
             watchEntry.percentWatched > WATCHED_THRESHOLD_SAMPLED -> WATCHED_PENALTY_SAMPLED
             else -> 1.0
         }
+    }
+
+    private val videoChannelLookup = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun recordVideoChannel(videoId: String, channelId: String) {
+        if (videoId.isNotBlank() && channelId.isNotBlank()) {
+            videoChannelLookup[videoId] = channelId
+        }
+    }
+
+    /**
+     * Positive watch history boost: channels with high completion (>= 50%) in recent watch history.
+     */
+    fun calculateWatchHistoryChannelBoost(
+        video: Video,
+        watchHistory: Map<String, WatchEntry>,
+        now: Long,
+    ): Double {
+        if (video.channelId.isBlank() || watchHistory.isEmpty()) return 0.0
+        recordVideoChannel(video.id, video.channelId)
+
+        val sevenDaysMs = 7L * 24 * 3600 * 1000L
+        var maxCompletion = 0f
+        var matchCount = 0
+
+        for ((vId, entry) in watchHistory) {
+            val chId = videoChannelLookup[vId]
+            if (chId == video.channelId) {
+                val isRecent = entry.timestamp <= 0L || (now - entry.timestamp) in 0L..sevenDaysMs
+                if (isRecent && entry.percentWatched >= 0.50f) {
+                    matchCount++
+                    if (entry.percentWatched > maxCompletion) {
+                        maxCompletion = entry.percentWatched
+                    }
+                }
+            }
+        }
+
+        if (matchCount == 0) return 0.0
+        val baseBoost = ((maxCompletion - 0.50) / 0.50) * 0.06 + 0.04
+        val repeatMultiplier = if (matchCount > 1) 1.2 else 1.0
+        return (baseBoost * repeatMultiplier).coerceIn(0.0, 0.10)
     }
 
     /**
@@ -696,6 +740,38 @@ internal object NeuroScoring {
 
         val rawBoost = bestMatchWeight * intensity.toDouble() * CRAVING_BOOST_MAX
         return rawBoost.coerceIn(0.0, CRAVING_BOOST_MAX)
+    }
+
+    fun calculateTopicStoppingBoost(
+        candidate: Candidate,
+        sessionIntent: SessionIntent,
+    ): Double = calculateTopicStoppingBoost(candidate.vector, sessionIntent)
+
+    /**
+     * Topic-stopping boost: elevates content aligned with the user's stopped topic after rapid skips.
+     */
+    fun calculateTopicStoppingBoost(
+        videoVector: ContentVector,
+        sessionIntent: SessionIntent,
+    ): Double {
+        val cravingTopic = sessionIntent.activeCravingTopic ?: return 0.0
+        val intensity = sessionIntent.cravingIntensity
+        if (intensity <= 0f) return 0.0
+
+        val baseCraving = stripDomainTag(cravingTopic).lowercase()
+        var bestMatchWeight = 0.0
+        for ((topic, weight) in videoVector.topics) {
+            val base = stripDomainTag(topic).lowercase()
+            if (base == baseCraving || base.contains(baseCraving) || baseCraving.contains(base)) {
+                if (weight > bestMatchWeight) {
+                    bestMatchWeight = weight
+                }
+            }
+        }
+        if (bestMatchWeight < 0.15) return 0.0
+
+        val rawBoost = bestMatchWeight * intensity.toDouble() * TOPIC_STOPPING_BOOST_MAX
+        return rawBoost.coerceIn(0.0, TOPIC_STOPPING_BOOST_MAX)
     }
 
     /**
@@ -1393,6 +1469,10 @@ internal object NeuroScoring {
 
         totalScore += calculateChannelSignal(video, brain, p.userSubs)
 
+        // Positive watch history signal: channel affinity from completed watches
+        recordVideoChannel(video.id, video.channelId)
+        totalScore += calculateWatchHistoryChannelBoost(video, p.watchHistory, p.now)
+
         totalScore += (p.coWatchPrior[video.channelId] ?: 0.0) * FlowNeuroEngine.COWATCH_MAX_PRIOR
 
         totalScore += calculateSerendipity(noveltyScore, contextScore)
@@ -1469,6 +1549,8 @@ internal object NeuroScoring {
         totalScore += calculateMomentumBoost(videoVector, p.recentInteractions, personalityScore)
 
         totalScore += calculateCravingBoost(videoVector, p.sessionIntent, brain.rejectionPatterns, p.now)
+
+        totalScore += calculateTopicStoppingBoost(videoVector, p.sessionIntent)
 
         totalScore += explorationBonus(videoVector, brain, p.exploreWeight)
 

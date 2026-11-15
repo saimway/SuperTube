@@ -423,6 +423,9 @@ fun NavGraphBuilder.flowAppGraph(
             onMovieClick = { movieId ->
                 navController.navigate("movie/$movieId")
             },
+            onTvClick = { tvId ->
+                navController.navigate("tvShow/$tvId")
+            },
         )
     }
 

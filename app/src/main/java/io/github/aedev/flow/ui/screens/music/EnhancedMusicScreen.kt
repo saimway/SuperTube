@@ -207,6 +207,8 @@ fun EnhancedMusicScreen(
                         remember(uiState.history, uiState.forYouTracks, uiState.listenAgain) {
                             (uiState.history + uiState.forYouTracks + uiState.listenAgain)
                                 .audioMusicOnly()
+                                .filter { it.videoId.isNotBlank() }
+                                .distinctBy { it.videoId }
                                 .take(26)
                         }
                     val speedDialTracks = uiState.speedDialTracks.ifEmpty { fallbackSpeedDial }

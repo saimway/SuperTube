@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.util.Log
 import io.github.aedev.flow.data.local.PlayerPreferences
+import io.github.aedev.flow.data.model.ShortVideo
 import io.github.aedev.flow.data.model.Video
 import io.github.aedev.flow.utils.traced
 import kotlinx.coroutines.CoroutineScope
@@ -239,6 +240,19 @@ class FlowNeuroEngine internal constructor(
 
         fun getSessionIntent(context: Context): SessionIntent = getInstance(context).getSessionIntent()
 
+        suspend fun onShortDwell(
+            short: ShortVideo,
+            dwellMs: Long,
+            isTopicStopping: Boolean,
+        ) = requireInstance().onShortDwell(short, dwellMs, isTopicStopping)
+
+        suspend fun onShortDwell(
+            context: Context,
+            short: ShortVideo,
+            dwellMs: Long,
+            isTopicStopping: Boolean,
+        ) = getInstance(context).onShortDwell(short, dwellMs, isTopicStopping)
+
         suspend fun onVideoInteraction(
             video: Video,
             interactionType: InteractionType,
@@ -441,6 +455,12 @@ class FlowNeuroEngine internal constructor(
     // Channels passively profiled from upload titles this session (once each).
     private val passiveProfiledChannels = HashSet<String>()
     private val sessionTopicHistory = mutableListOf<String>()
+    @Volatile
+    private var explicitCravingTopic: String? = null
+    @Volatile
+    private var explicitCravingIntensity: Float = 0.0f
+    @Volatile
+    private var explicitCravingExpiresAt: Long = 0L
     private val recentInteractions = mutableListOf<MomentumEntry>()
 
     // IDF tracking — persisted in brain state
@@ -870,6 +890,9 @@ class FlowNeuroEngine internal constructor(
         sessionStartTime = System.currentTimeMillis()
         sessionVideoCount = 0
         sessionTopicHistory.clear()
+        explicitCravingTopic = null
+        explicitCravingIntensity = 0.0f
+        explicitCravingExpiresAt = 0L
         impressionCache.clear()
         recentInteractions.clear()
         discoveryRound = 0
@@ -1506,6 +1529,7 @@ class FlowNeuroEngine internal constructor(
             }
 
             toProcess.forEach { video ->
+                NeuroScoring.recordVideoChannel(video.id, video.channelId)
                 watchHistory[video.id] = WatchEntry(0.5f, System.currentTimeMillis())
             }
 
@@ -1659,6 +1683,20 @@ class FlowNeuroEngine internal constructor(
             } else {
                 0.0f
             }
+
+        val now = System.currentTimeMillis()
+        val explicit = explicitCravingTopic
+        if (explicit != null && now < explicitCravingExpiresAt) {
+            val isRejected = NeuroScoring.hasActiveTopicRejection(explicit, brain.rejectionPatterns, now)
+            if (!isRejected) {
+                return SessionIntent(
+                    consecutiveSkips = skips,
+                    activeCravingTopic = explicit,
+                    cravingIntensity = explicitCravingIntensity,
+                    discoveryBias = discoveryBias,
+                )
+            }
+        }
 
         val recentTopics =
             synchronized(sessionTopicHistory) {
@@ -2455,6 +2493,78 @@ class FlowNeuroEngine internal constructor(
     }
 
     // =================================================
+    // SHORTS DWELL & TOPIC-STOPPING
+    // =================================================
+
+    /**
+     * Updates shorts vector based on dwell duration and detects topic-stopping intent,
+     * elevating matching content for user craving.
+     */
+    suspend fun onShortDwell(
+        short: ShortVideo,
+        dwellMs: Long,
+        isTopicStopping: Boolean,
+    ) {
+        if (short.id.isBlank()) return
+        ensureInitialized()
+        withBrainLock {
+            val video =
+                Video(
+                    id = short.id,
+                    title = short.title,
+                    channelName = short.channelName,
+                    channelId = short.channelId,
+                    thumbnailUrl = short.thumbnailUrl,
+                    duration = if (short.durationMs > 0) (short.durationMs / 1000).toInt() else (dwellMs / 1000).toInt(),
+                    viewCount = short.viewCount,
+                    likeCount = short.likeCount,
+                    uploadDate = short.uploadDate,
+                    description = short.description,
+                    isShort = true,
+                )
+            NeuroScoring.recordVideoChannel(video.id, video.channelId)
+
+            val idfSnapshot = takeIdfSnapshot()
+            val videoVector = tokenizer.extractFeatures(video, idfSnapshot)
+            if (videoVector.topics.isEmpty()) return@withBrainLock
+
+            val dwellSeconds = (dwellMs / 1000.0).coerceIn(1.0, 30.0)
+            var dwellRate = (dwellSeconds / 100.0).coerceIn(0.02, 0.18)
+            if (isTopicStopping) {
+                dwellRate = (dwellRate * 1.5).coerceAtMost(0.25)
+            }
+
+            val updatedShortsVector =
+                NeuroVectorMath.adjustVector(
+                    currentUserBrain.shortsVector,
+                    videoVector,
+                    dwellRate,
+                )
+
+            val primaryTopic = videoVector.topics.maxByOrNull { it.value }?.key
+
+            if (primaryTopic != null) {
+                sessionTopicHistory.add(primaryTopic)
+                while (sessionTopicHistory.size > SESSION_TOPIC_HISTORY_MAX) {
+                    sessionTopicHistory.removeAt(0)
+                }
+            }
+
+            if (isTopicStopping && primaryTopic != null) {
+                explicitCravingTopic = primaryTopic
+                explicitCravingIntensity = 0.85f
+                explicitCravingExpiresAt = System.currentTimeMillis() + (10 * 60 * 1000L)
+            }
+
+            currentUserBrain =
+                currentUserBrain.copy(
+                    shortsVector = updatedShortsVector,
+                )
+            scheduleDebouncedSave()
+        }
+    }
+
+    // =================================================
     // LEARNING FUNCTION
     // =================================================
 
@@ -2889,6 +2999,7 @@ class FlowNeuroEngine internal constructor(
             if (interactionType == InteractionType.WATCHED &&
                 percentWatched > NeuroScoring.WATCHED_THRESHOLD_SAMPLED
             ) {
+                NeuroScoring.recordVideoChannel(video.id, video.channelId)
                 val existing = watchHistory[video.id]
                 if (existing == null ||
                     percentWatched > existing.percentWatched

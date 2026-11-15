@@ -68,7 +68,13 @@ fun SpeedDialSection(
 ) {
     if (speedDialTracks.isEmpty()) return
 
-    val tiles = remember(speedDialTracks) { speedDialTracks.distinctBy { it.videoId }.take(SPEED_DIAL_MAX_TRACKS) }
+    val distinctTracks =
+        remember(speedDialTracks) {
+            speedDialTracks.filter { it.videoId.isNotBlank() }.distinctBy { it.videoId }
+        }
+    if (distinctTracks.isEmpty()) return
+
+    val tiles = remember(distinctTracks) { distinctTracks.take(SPEED_DIAL_MAX_TRACKS) }
     val columns = flowGridColumns(compact = 2, medium = 3, expanded = 4)
     val cellWidth = flowGridCellWidth(columns = columns, gap = SpeedDialGap)
 
@@ -87,7 +93,7 @@ fun SpeedDialSection(
             item(key = "speed_dial_shuffle") {
                 SpeedDialShuffleTile(
                     onClick = {
-                        val shuffled = speedDialTracks.shuffled()
+                        val shuffled = distinctTracks.shuffled()
                         onSongClick(shuffled.first(), shuffled, "speed_dial_shuffle")
                     },
                     modifier = Modifier.width(cellWidth),
@@ -97,7 +103,7 @@ fun SpeedDialSection(
                 SpeedDialTile(
                     track = track,
                     isDownloaded = downloadedTrackIds.contains(track.videoId),
-                    onClick = { onSongClick(track, speedDialTracks, "speed_dial") },
+                    onClick = { onSongClick(track, distinctTracks, "speed_dial") },
                     onLongClick = { onTrackMenu(track) },
                     modifier = Modifier.width(cellWidth),
                 )

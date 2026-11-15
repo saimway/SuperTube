@@ -227,12 +227,14 @@ class MusicBrainEngine
             ensureInitialized()
             return withContext(Dispatchers.Default) {
                 mutex.withLock {
-                    if (tracks.size == 1) {
-                        val key = tracks[0].primaryArtistKey()
-                        if (brain.isArtistBlocked(key)) emptyList() else tracks
+                    val distinctTracks = tracks.filter { it.videoId.isNotBlank() }.distinctBy { it.videoId }
+                    if (distinctTracks.isEmpty()) return@withLock emptyList()
+                    if (distinctTracks.size == 1) {
+                        val key = distinctTracks[0].primaryArtistKey()
+                        if (brain.isArtistBlocked(key)) emptyList() else distinctTracks
                     } else {
-                        val inputs = tracks.map { MusicRankInput(trackId = it.videoId, artistKey = it.primaryArtistKey()) }
-                        MusicBrainRanker.rank(brain, inputs, surface, System.currentTimeMillis()).map { tracks[it] }
+                        val inputs = distinctTracks.map { MusicRankInput(trackId = it.videoId, artistKey = it.primaryArtistKey()) }
+                        MusicBrainRanker.rank(brain, inputs, surface, System.currentTimeMillis()).map { distinctTracks[it] }
                     }
                 }
             }

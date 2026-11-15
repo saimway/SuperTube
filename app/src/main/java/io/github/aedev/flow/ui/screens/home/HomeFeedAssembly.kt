@@ -238,9 +238,21 @@ internal fun assembleHomeFeed(
     val usedVideoIds = mutableSetOf<String>()
     var freshAdded = 0
 
-    // Exclude currently on-screen IDs so fresh recommendations always take the top of the feed
+    // Exclude currently on-screen IDs so fresh recommendations always take the top of the feed,
+    // but only when candidate depth outside of on-screen IDs is sufficient to fill the feed.
     if (onScreenIds.isNotEmpty()) {
-        usedVideoIds += onScreenIds
+        val availableCandidatesCount = (
+            lanes.freshCandidates +
+                lanes.bestDiscovery +
+                lanes.bestRelated +
+                lanes.bestMemory +
+                lanes.bestSubs +
+                lanes.bestNeighbours
+        ).distinctBy { it.id }.count { it.id !in onScreenIds }
+
+        if (availableCandidatesCount >= targetSize / 2) {
+            usedVideoIds += onScreenIds
+        }
     }
 
     lanes.pinnedFresh.forEach { video ->
@@ -276,12 +288,16 @@ internal fun assembleHomeFeed(
         )
     finalMix += sourceMix.videos
 
-    // If fresh candidates didn't fully fill the feed target, backfill from available items at the bottom only
-    if (finalMix.size < 12 && onScreenIds.isNotEmpty()) {
+    // If fresh candidates didn't fully fill the feed target, backfill from available items up to targetSize
+    if (finalMix.size < targetSize) {
         val allAvailable = (lanes.bestDiscovery + lanes.bestRelated + lanes.bestSubs + lanes.bestMemory)
+        val existingInMix = finalMix.mapTo(HashSet()) { it.id }
         for (video in allAvailable) {
             if (finalMix.size >= targetSize) break
-            addUniqueVideo(video, finalMix, usedChannelCounts, usedVideoIds)
+            if (existingInMix.add(video.id)) {
+                finalMix.add(video)
+                usedVideoIds.add(video.id)
+            }
         }
     }
 

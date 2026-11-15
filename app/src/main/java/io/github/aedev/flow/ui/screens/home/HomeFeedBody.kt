@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +46,7 @@ import io.github.aedev.flow.data.shorts.queue.ShortsQueueSource
 import io.github.aedev.flow.ui.TabScrollEventBus
 import io.github.aedev.flow.ui.components.FeedGridLayout
 import io.github.aedev.flow.ui.components.shared.FeedGridSkeleton
+import io.github.aedev.flow.ui.components.shared.FlowEmptyState
 import io.github.aedev.flow.ui.components.shared.FlowErrorState
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipContent
 import io.github.aedev.flow.ui.screens.home.chips.HomeChipsState
@@ -209,8 +212,22 @@ internal fun HomeFeedBody(
 
         uiState.error != null && uiState.videos.isEmpty() -> {
             FlowErrorState(
-                error = uiState.error ?: stringResource(R.string.error_occurred),
-                onRetry = { viewModel.retry() },
+                error = uiState.error ?: stringResource(R.string.home_refresh_failed),
+                onRetry = { viewModel.refreshFeed() },
+            )
+        }
+
+        uiState.videos.isEmpty() -> {
+            FlowEmptyState(
+                title = stringResource(R.string.home_refresh_failed),
+                icon = Icons.Outlined.Refresh,
+                action = {
+                    Button(
+                        onClick = { viewModel.refreshFeed() },
+                    ) {
+                        Text(stringResource(R.string.action_retry))
+                    }
+                },
             )
         }
 
