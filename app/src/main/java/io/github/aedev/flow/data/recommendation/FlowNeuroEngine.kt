@@ -2506,7 +2506,6 @@ class FlowNeuroEngine internal constructor(
         isTopicStopping: Boolean,
     ) {
         if (short.id.isBlank()) return
-        ensureInitialized()
         withBrainLock {
             val video =
                 Video(
