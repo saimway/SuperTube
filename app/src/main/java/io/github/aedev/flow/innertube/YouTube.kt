@@ -146,6 +146,11 @@ import kotlin.random.Random
  */
 object YouTube {
     private val innerTube = InnerTube()
+    private val lenientJson =
+        Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        }
     private const val CHANNEL_VIDEOS_PARAMS = "EgZ2aWRlb3PyBgQKAjoA"
     private const val CHANNEL_LIVE_PARAMS = "EgdzdHJlYW1z8gYECgJ6AA%3D%3D"
     private const val CHANNEL_POSTS_PARAMS = "EgVwb3N0c_IGBAoCSgA="
@@ -342,22 +347,14 @@ object YouTube {
     suspend fun videoAvatarStack(videoId: String): Result<List<String>> =
         runCatching {
             val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
-            val root =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }.parseToJsonElement(rawBody)
+            val root = lenientJson.parseToJsonElement(rawBody)
             root.findVideoOwnerAvatarStackUrls()
         }
 
     suspend fun videoCollaborators(videoId: String): Result<List<VideoCollaborator>> =
         runCatching {
             val rawBody = innerTube.next(WEB, videoId, null, null, null, null, null).bodyAsText()
-            val root =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }.parseToJsonElement(rawBody)
+            val root = lenientJson.parseToJsonElement(rawBody)
             root.findVideoOwnerCollaborators()
         }
 
@@ -595,11 +592,6 @@ object YouTube {
         runCatching {
             val httpResponse = innerTube.channelSearch(currentWebClient(), channelId, query)
             val rawBody = httpResponse.bodyAsText()
-            val lenientJson =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }
             val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
             parseChannelSearchResponse(response, channelId, channelName, channelThumbnailUrl)
         }
@@ -619,11 +611,6 @@ object YouTube {
                     continuation = continuation,
                 )
             val rawBody = httpResponse.bodyAsText()
-            val lenientJson =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }
             val response = lenientJson.decodeFromString<io.github.aedev.flow.innertube.models.response.ChannelSearchResponse>(rawBody)
 
             val videos = mutableListOf<io.github.aedev.flow.data.model.Video>()
@@ -909,13 +896,8 @@ object YouTube {
                     continuation = continuation,
                 )
             val rawBody = httpResponse.bodyAsText()
-            val lenientJson =
-                Json {
-                    ignoreUnknownKeys = true
-                    explicitNulls = false
-                }
             val response = lenientJson.decodeFromString<ChannelVideosResponse>(rawBody)
-            val sorts = Json.parseToJsonElement(rawBody).channelSortOptions()
+            val sorts = lenientJson.parseToJsonElement(rawBody).channelSortOptions()
             parseChannelVideosResponse(response, channelId, channelName, channelThumbnailUrl, isLive)
                 .copy(sorts = sorts)
         }
