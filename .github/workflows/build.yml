@@ -108,12 +108,43 @@ jobs:
           path: dist/supertube.apk
           retention-days: 14
 
+      - name: Determine release tag
+        id: release_tag
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "push_tag=false" >> "$GITHUB_OUTPUT"
+          else
+            ver=$(grep -m1 'versionName' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/')
+            tag="v${ver}"
+            if git ls-remote --tags origin "refs/tags/${tag}" | grep -q "${tag}"; then
+              echo "Tag ${tag} already exists on origin; skipping release."
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              echo "push_tag=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "Preparing new release tag ${tag} for ${GITHUB_SHA}"
+              echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+              echo "should_release=true" >> "$GITHUB_OUTPUT"
+              echo "push_tag=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Tag commit for new version release
+        if: steps.release_tag.outputs.push_tag == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.release_tag.outputs.tag }}" -m "SuperTube ${{ steps.release_tag.outputs.tag }}"
+          git push origin "refs/tags/${{ steps.release_tag.outputs.tag }}"
+
       - name: Create or Update GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.release_tag.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
-          name: SuperTube ${{ github.ref_name }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: SuperTube ${{ steps.release_tag.outputs.tag }}
           body_path: release-notes.md
           generate_release_notes: false
           files: |

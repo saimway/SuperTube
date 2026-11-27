@@ -1,0 +1,25 @@
+SUPERTUBE CHANGE LOG
+VERSION: 3.0.8
+DATE: 2026-11-27
+STATUS: release
+
+HIGHLIGHTS
+- Search pollution fix: test searches like 4k video or wifi speed tests no longer flood your Home or Shorts recommendations
+- Watch-depth & language adaptation: rapid skips immediately steer feeds away from unwanted languages (such as Bangla or Hindi) across Videos, Shorts, and Music
+- Real-time Shorts adaptation: fast swipes are properly classified as skips and immediately re-rank upcoming queued Shorts
+- Clean Music Radio & suggestions: eliminates duplicate current-song versions (slowed+reverb, sped-up, 8D, nightcore) and prioritizes truly new songs
+- Memory and network optimizations: lock-free bounded music cache, shared JSON parser instances, and dynamic year discovery queries
+
+RECOMMENDATION & SHORTS UPGRADES
+- Utility search filter ignores resolution, HDR, and network test queries instead of rewriting your taste vector
+- Unwatched search-only terms decay rapidly within 48 hours and require genuine watch confirmation before dominating discovery queries
+- Scaled video watch learning by completion depth instead of flat interaction boosts
+- Fixed Shorts classifier treating fast <4s buffering swipes as 100% watched and wired sub-second abandon tracking
+- Live tail re-ranking and pruning updates upcoming unviewed Shorts and discovery pools immediately on skips, dislikes, and dwells
+
+MUSIC ENGINE & PERFORMANCE
+- Canonical song deduplication collapses slowed+reverb, sped-up, nightcore, 8D, remix, cover, and lyric uploads across Radio, Up Next, Quick Picks, Daily Discover, Speed Dial, and playlist suggestions
+- Early music skips record track/canonical-song cooldowns and language avoidance penalties and immediately prune upcoming Radio items
+- Improved Radio freshness weights to suppress recently played songs and diversify thin radio mixes with related tracks
+- Removed global mutex lock contention in MusicCache and enforced bounded cache entry limits with expired-entry eviction
+- Reused shared lenient JSON parser in InnerTube client calls and replaced hardcoded 2025 music queries with the current year
