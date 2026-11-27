@@ -20,7 +20,11 @@ import io.github.aedev.flow.data.music.model.MusicPlaylist
 import io.github.aedev.flow.data.music.model.MusicTrack
 import io.github.aedev.flow.data.music.model.RelatedMusic
 import io.github.aedev.flow.data.music.model.audioMusicOnly
+import io.github.aedev.flow.data.music.model.dedupeCanonicalSongs
 import io.github.aedev.flow.data.music.model.isAudioMusicCandidate
+import io.github.aedev.flow.data.music.model.isSameSongOrVariant
+import io.github.aedev.flow.data.music.model.musicDetectLanguage
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 import io.github.aedev.flow.data.newmusic.InnertubeMusicService
 import io.github.aedev.flow.data.recommendation.MusicRecommendationAlgorithm
 import io.github.aedev.flow.data.recommendation.MusicSection
@@ -270,7 +274,16 @@ class MusicViewModel
                     }
 
                 val excluded = seeds.map { it.videoId }.toSet()
-                val mixed = MusicQuickPicks.interleave(lanes, MusicQuickPicks.TARGET, excluded, laneCaps)
+                val avoidedLangs = musicBrain.avoidedLanguagesNow()
+                val mixed =
+                    MusicQuickPicks.interleave(
+                        lanes = lanes,
+                        limit = MusicQuickPicks.TARGET,
+                        excludedIds = excluded,
+                        laneCaps = laneCaps,
+                        excludedTracks = seeds,
+                        avoidedLanguages = avoidedLangs,
+                    )
                 Log.d(
                     "MusicViewModel",
                     "Quick Picks related=[${relatedLanes.joinToString { it.size.toString() }}] " +
@@ -707,7 +720,14 @@ class MusicViewModel
                 } else if (!skippedFreshCache && !quickPicksComposed &&
                     _uiState.value.forYouTracks.isEmpty() && _uiState.value.dynamicSections.isEmpty()
                 ) {
-                    val recs = musicRecommendationAlgorithm.getRecommendations(24).audioMusicOnly()
+                    val avoidedLangs = musicBrain.avoidedLanguagesNow()
+                    val recs =
+                        musicRecommendationAlgorithm
+                            .getRecommendations(30)
+                            .audioMusicOnly()
+                            .filterNot { musicIsFanEditVariant(it.title) }
+                            .filterNot { avoidedLangs.isNotEmpty() && musicDetectLanguage(it.title, it.artist) in avoidedLangs }
+                            .dedupeCanonicalSongs()
                     if (recs.isNotEmpty()) {
                         val ranked = musicBrain.rankTracks(recs, "quick_picks")
                         _uiState.update { it.copy(forYouTracks = ranked) }
@@ -736,7 +756,11 @@ class MusicViewModel
                             // Raw history is only an emergency placeholder — never over a composed shelf.
                             forYouTracks =
                                 if (it.forYouTracks.isEmpty() && !quickPicksComposed) {
-                                    history.audioMusicOnly().take(24)
+                                    history
+                                        .audioMusicOnly()
+                                        .filterNot { cand -> musicIsFanEditVariant(cand.title) }
+                                        .dedupeCanonicalSongs()
+                                        .take(24)
                                 } else {
                                     it.forYouTracks
                                 },
@@ -1436,6 +1460,8 @@ class MusicViewModel
 
                 val items = java.util.Collections.synchronizedList(mutableListOf<DailyDiscoverItem>())
 
+                val avoidedLangs = musicBrain.avoidedLanguagesNow()
+                val allowFanEditsAll = seeds.any { musicIsFanEditVariant(it.title) }
                 kotlinx.coroutines.coroutineScope {
                     seeds
                         .map { seed ->
@@ -1443,11 +1469,20 @@ class MusicViewModel
                                 try {
                                     val related =
                                         YouTubeMusicService
-                                            .getRelatedMusic(seed.videoId, 16, audioOnly = true)
+                                            .getRelatedMusic(seed.videoId, 20, audioOnly = true)
                                             .audioMusicOnly()
+                                            .filterNot { cand ->
+                                                cand.videoId == seed.videoId ||
+                                                    seed.isSameSongOrVariant(cand) ||
+                                                    (!allowFanEditsAll && musicIsFanEditVariant(cand.title)) ||
+                                                    (
+                                                        avoidedLangs.isNotEmpty() &&
+                                                            musicDetectLanguage(cand.title, cand.artist) in avoidedLangs
+                                                    )
+                                            }.dedupeCanonicalSongs()
                                     val recommendation =
                                         musicBrain
-                                            .rankTracks(related.filter { it.videoId != seed.videoId }, "discover")
+                                            .rankTracks(related, "discover")
                                             .firstOrNull { it.isAudioMusicCandidate() }
                                     if (recommendation != null) {
                                         items.add(DailyDiscoverItem(seed, recommendation))
@@ -1460,12 +1495,19 @@ class MusicViewModel
                 }
 
                 if (items.isNotEmpty()) {
+                    val keptIds = HashSet<String>(items.size)
+                    val keptRecs = ArrayList<MusicTrack>(items.size)
                     val finalDiscover =
                         items
                             .toList()
                             .filter { it.seed.isAudioMusicCandidate() && it.recommendation.isAudioMusicCandidate() }
-                            .distinctBy { it.recommendation.videoId }
-                            .shuffled()
+                            .filter { entry ->
+                                val rec = entry.recommendation
+                                if (!keptIds.add(rec.videoId)) return@filter false
+                                if (keptRecs.any { it.isSameSongOrVariant(rec) }) return@filter false
+                                keptRecs.add(rec)
+                                true
+                            }.shuffled()
                     _uiState.update { it.copy(dailyDiscover = finalDiscover) }
                 }
             } catch (e: Exception) {
