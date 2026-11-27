@@ -240,6 +240,15 @@ class FlowNeuroEngine internal constructor(
 
         fun getSessionIntent(context: Context): SessionIntent = getInstance(context).getSessionIntent()
 
+        fun avoidedLanguages(): Set<String> = instance?.avoidedLanguagesNow().orEmpty()
+
+        fun recordAvoidedLanguageAsync(
+            context: Context,
+            title: String,
+            channelName: String = "",
+            weight: Int = 1,
+        ) = getInstance(context).recordAvoidedLanguageAsync(title, channelName, weight)
+
         suspend fun onShortDwell(
             short: ShortVideo,
             dwellMs: Long,
@@ -492,6 +501,9 @@ class FlowNeuroEngine internal constructor(
             0.75f,
             true,
         )
+
+    @Volatile
+    private var cachedAvoidedLanguages: Set<String> = emptySet()
 
     private var currentUserBrain: UserBrain = UserBrain()
 
@@ -1637,6 +1649,16 @@ class FlowNeuroEngine internal constructor(
                     pruneBelow = NeuroVectorMath.EVIDENCE_PRUNE_THRESHOLD,
                 )
 
+            val newLanguagePenalties =
+                NeuroLanguages.recordLanguageAvoidance(
+                    currentUserBrain.languagePenalties,
+                    NeuroLanguages.detectContentLanguage(video.title, video.channelName),
+                    currentUserBrain.languageProfile ?: tokenizer.languageProfile,
+                    now,
+                    weight = 2,
+                )
+            cachedAvoidedLanguages = NeuroLanguages.avoidedLanguageSet(newLanguagePenalties, now)
+
             currentUserBrain =
                 currentUserBrain.copy(
                     globalVector = newGlobal,
@@ -1649,6 +1671,7 @@ class FlowNeuroEngine internal constructor(
                     channelMemory = ChannelMemory.recordRejection(currentUserBrain.channelMemory, video.channelId, video.channelName, now),
                     rejectionPatterns = updatedPatterns,
                     topicEvidence = bumpNegativeEvidence(currentUserBrain.topicEvidence, videoVector),
+                    languagePenalties = newLanguagePenalties,
                 )
             storage.save(deepFlowBookkeeping.persistable(currentUserBrain))
         }
@@ -2011,6 +2034,33 @@ class FlowNeuroEngine internal constructor(
         return { title, channelName -> NeuroScoring.isBlockedByText(title, channelName, matchers, tokenizer::keyOf) }
     }
 
+    fun avoidedLanguagesNow(now: Long = System.currentTimeMillis()): Set<String> {
+        val snapshot = currentUserBrain.languagePenalties
+        if (snapshot.isEmpty()) return emptySet()
+        return NeuroLanguages.avoidedLanguageSet(snapshot, now).also { cachedAvoidedLanguages = it }
+    }
+
+    fun recordAvoidedLanguageAsync(
+        title: String,
+        channelName: String = "",
+        weight: Int = 1,
+    ) {
+        val detected = NeuroLanguages.detectContentLanguage(title, channelName) ?: return
+        saveScope.launch {
+            if (isLearningPaused()) return@launch
+            withBrainLock {
+                val now = System.currentTimeMillis()
+                val profile = currentUserBrain.languageProfile ?: tokenizer.languageProfile
+                val updated = NeuroLanguages.recordLanguageAvoidance(currentUserBrain.languagePenalties, detected, profile, now, weight)
+                if (updated !== currentUserBrain.languagePenalties) {
+                    cachedAvoidedLanguages = NeuroLanguages.avoidedLanguageSet(updated, now)
+                    currentUserBrain = currentUserBrain.copy(languagePenalties = updated)
+                    scheduleDebouncedSave()
+                }
+            }
+        }
+    }
+
     /** The same suppression windows [rank] applies; the topic matchers are built only if a caller asks. */
     suspend fun feedExclusions(now: Long = System.currentTimeMillis()): FeedExclusions {
         val brain = withBrainLock { currentUserBrain }
@@ -2018,6 +2068,7 @@ class FlowNeuroEngine internal constructor(
         val matchers by lazy {
             NeuroScoring.buildBlockedMatchers(brain.blockedTopics, NeuroTopicCatalog.TOPIC_CATEGORIES, tokenizer::keyOf)
         }
+        val avoidedLanguages = NeuroLanguages.avoidedLanguageSet(brain.languagePenalties, now, threshold = 1.8)
         return FeedExclusions(
             suppressedVideoIds = brain.suppressedVideoIds.keys,
             blockedChannelIds = brain.blockedChannels,
@@ -2025,6 +2076,10 @@ class FlowNeuroEngine internal constructor(
             blockedText = { title, channelName ->
                 brain.blockedTopics.isNotEmpty() &&
                     NeuroScoring.isBlockedByText(title, channelName, matchers, tokenizer::keyOf)
+            },
+            avoidedLanguage = { title, channelName ->
+                avoidedLanguages.isNotEmpty() &&
+                    NeuroLanguages.detectContentLanguage(title, channelName) in avoidedLanguages
             },
         )
     }
@@ -2602,7 +2657,12 @@ class FlowNeuroEngine internal constructor(
                 }
 
                 InteractionType.WATCHED -> {
-                    val baseWatchRate = 0.15 * percentWatched
+                    val baseWatchRate =
+                        when {
+                            percentWatched < 0.25f -> 0.04 * percentWatched
+                            percentWatched >= 0.70f -> 0.18 * percentWatched
+                            else -> 0.14 * percentWatched
+                        }
                     val timeBonus = (
                         ln(1.0 + absoluteMinutesWatched) /
                             ln(1.0 + 60.0) * 0.08
@@ -3020,14 +3080,17 @@ class FlowNeuroEngine internal constructor(
                     entry.percentWatched
                 }
 
+            val interactionNow = System.currentTimeMillis()
+            val firstLine =
+                video.description
+                    .lineSequence()
+                    .firstOrNull { it.isNotBlank() }
+                    .orEmpty()
+            val detectedContentLang =
+                NeuroLanguages.detectContentLanguage("${video.title}\n$firstLine", video.channelName)
             val profile = currentUserBrain.languageProfile ?: tokenizer.languageProfile
             val language =
                 if (learningRate > 0 && interactionType == InteractionType.WATCHED) {
-                    val firstLine =
-                        video.description
-                            .lineSequence()
-                            .firstOrNull { it.isNotBlank() }
-                            .orEmpty()
                     NeuroLanguages.vote(profile, currentUserBrain.languageVotes, NeuroLanguages.detectText("${video.title}\n$firstLine"))
                 } else {
                     profile to currentUserBrain.languageVotes
@@ -3036,6 +3099,39 @@ class FlowNeuroEngine internal constructor(
                 Log.i(TAG, "Language profile $profile → ${language.first}")
                 tokenizer.languageProfile = language.first
             }
+
+            val updatedLanguagePenalties =
+                when {
+                    interactionType == InteractionType.DISLIKED -> {
+                        NeuroLanguages.recordLanguageAvoidance(
+                            currentUserBrain.languagePenalties,
+                            detectedContentLang,
+                            language.first,
+                            interactionNow,
+                            weight = 2,
+                        )
+                    }
+
+                    interactionType == InteractionType.SKIPPED -> {
+                        NeuroLanguages.recordLanguageAvoidance(
+                            currentUserBrain.languagePenalties,
+                            detectedContentLang,
+                            language.first,
+                            interactionNow,
+                            weight = 1,
+                        )
+                    }
+
+                    interactionType == InteractionType.LIKED ||
+                        (interactionType == InteractionType.WATCHED && percentWatched >= 0.40f) -> {
+                        NeuroLanguages.forgiveLanguage(currentUserBrain.languagePenalties, detectedContentLang)
+                    }
+
+                    else -> {
+                        currentUserBrain.languagePenalties
+                    }
+                }
+            cachedAvoidedLanguages = NeuroLanguages.avoidedLanguageSet(updatedLanguagePenalties, interactionNow)
 
             currentUserBrain =
                 currentUserBrain.copy(
@@ -3068,6 +3164,7 @@ class FlowNeuroEngine internal constructor(
                         },
                     languageProfile = language.first,
                     languageVotes = language.second,
+                    languagePenalties = updatedLanguagePenalties,
                     displayForms =
                         if (learningRate > 0) {
                             val keys = learningVector.topics.keys
