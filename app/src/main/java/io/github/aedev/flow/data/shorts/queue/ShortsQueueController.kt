@@ -253,6 +253,49 @@ class ShortsQueueController(
         return ShortsQueueChange.ListOnly
     }
 
+    /**
+     * Drops any queued reel strictly after [currentIndex] matching [shouldDrop], keeping the
+     * current reel and backward swipe history completely intact.
+     */
+    fun pruneTail(shouldDrop: (ShortVideo) -> Boolean): ShortsQueueChange {
+        val current = _items.value
+        val curIdx = _currentIndex.value
+        if (current.isEmpty() || curIdx >= current.lastIndex) return ShortsQueueChange.None
+
+        val prefix = current.subList(0, curIdx + 1)
+        val tail = current.subList(curIdx + 1, current.size)
+        val filteredTail = tail.filterNot(shouldDrop)
+        if (filteredTail.size == tail.size) return ShortsQueueChange.None
+
+        tail.filter(shouldDrop).forEach { seenIds += it.id }
+        _items.value = prefix + filteredTail
+        return ShortsQueueChange.ListOnly
+    }
+
+    /**
+     * Adapts unviewed reels past [currentIndex] (keeping the immediate neighbour unless
+     * [keepImmediateNext] is false) without touching history or the reel currently on screen.
+     */
+    fun adaptTail(
+        keepImmediateNext: Boolean = true,
+        transform: (List<ShortVideo>) -> List<ShortVideo>,
+    ): ShortsQueueChange {
+        if (!acceptsDiscovery) return ShortsQueueChange.None
+        val current = _items.value
+        val offset = if (keepImmediateNext) 2 else 1
+        val pivot = (_currentIndex.value + offset).coerceAtMost(current.size)
+        if (pivot >= current.lastIndex) return ShortsQueueChange.None
+
+        val prefix = current.subList(0, pivot)
+        val tail = current.subList(pivot, current.size)
+        val prefixIds = prefix.mapTo(HashSet(prefix.size)) { it.id }
+        val adaptedTail = transform(tail).filterNot { it.id in prefixIds }.distinctBy { it.id }
+        if (adaptedTail.map { it.id } == tail.map { it.id }) return ShortsQueueChange.None
+
+        _items.value = prefix + adaptedTail
+        return ShortsQueueChange.ListOnly
+    }
+
     private suspend fun fetchNext(): ShortsQueuePage? {
         val leg = legs.getOrNull(legIndex) ?: return null
         val page =

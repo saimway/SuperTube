@@ -168,6 +168,40 @@ internal class ShortsFeedPager(
         pools.values.forEach { pool -> pool.removeAll { it.short.channelId == channelId } }
     }
 
+    /**
+     * Real-time adaptation after a skip/dwell signal: evicts newly disliked/avoided reels from
+     * every buffered lane pool and, on [rerank], refreshes queries and re-orders remaining candidates
+     * under the updated session profile.
+     */
+    suspend fun adaptInRealTime(
+        shouldDrop: (ShortVideo) -> Boolean,
+        rerank: Boolean = false,
+    ) = lock.withLock {
+        pools.values.forEach { pool ->
+            val it = pool.iterator()
+            while (it.hasNext()) {
+                val item = it.next()
+                if (shouldDrop(item.short)) {
+                    usedIds += item.short.id
+                    it.remove()
+                }
+            }
+        }
+        if (!rerank) return@withLock
+        profile = context.profile()
+        queryIndex = queries.size
+        listOf(ShortsFeedLane.DISCOVERY, ShortsFeedLane.EXPLORE).forEach { lane ->
+            val pool = pools.getValue(lane)
+            if (pool.size < 2) return@forEach
+            val byId = pool.associateBy { it.short.id }
+            val ranked = engine.rank(pool.map { it.short.toVideo() }, profile.subscribedChannelIds)
+            if (ranked.isNotEmpty()) {
+                pool.clear()
+                ranked.mapNotNull { byId[it.id] }.forEach(pool::addLast)
+            }
+        }
+    }
+
     private suspend fun refill() {
         profile = context.profile()
         val quotas = shortsFeedQuotas(pageSize, profile)
