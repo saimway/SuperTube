@@ -7,12 +7,117 @@
 package io.github.aedev.flow.data.recommendation.music
 
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * Pure learning functions — no I/O, no Android types. Every mutation of a
  * [MusicBrain] flows through here, called under the engine mutex.
  */
 internal object MusicBrainLearn {
+    fun canonicalSkipKey(
+        canonicalTitleKey: String,
+        artistKey: String,
+    ): String {
+        if (canonicalTitleKey.isBlank()) return ""
+        return if (canonicalTitleKey.length >= 4) {
+            "canon:$canonicalTitleKey"
+        } else if (artistKey.isNotBlank()) {
+            "canon:$canonicalTitleKey|$artistKey"
+        } else {
+            ""
+        }
+    }
+
+    fun effectiveLanguagePenalty(
+        penalty: MusicLanguagePenalty,
+        nowMs: Long,
+    ): Double {
+        if (penalty.count <= 0) return 0.0
+        val ageMs = (nowMs - penalty.lastRejectedAt).coerceAtLeast(0L)
+        return penalty.count * 0.5.pow(ageMs.toDouble() / MusicBrainParams.LANGUAGE_PENALTY_HALF_LIFE_MS)
+    }
+
+    fun languagePenaltyMultiplier(
+        brain: MusicBrain,
+        language: String?,
+        nowMs: Long,
+    ): Double {
+        if (brain.languagePenalties.isEmpty() || language.isNullOrBlank()) return 1.0
+        val penalty = brain.languagePenalties[language] ?: return 1.0
+        val effective = effectiveLanguagePenalty(penalty, nowMs)
+        return when {
+            effective >= 2.8 -> 0.05
+            effective >= 1.8 -> 0.15
+            effective >= 0.8 -> 0.35
+            else -> 1.0
+        }
+    }
+
+    fun avoidedLanguageKeys(
+        brain: MusicBrain,
+        nowMs: Long,
+    ): Set<String> =
+        brain.languagePenalties.entries
+            .filter { (_, penalty) -> effectiveLanguagePenalty(penalty, nowMs) >= MusicBrainParams.LANGUAGE_AVOID_THRESHOLD }
+            .mapTo(HashSet()) { it.key }
+
+    fun isTrackInSkipCooldown(
+        brain: MusicBrain,
+        trackId: String,
+        canonicalKey: String,
+        nowMs: Long,
+    ): Boolean {
+        val idTs = if (trackId.isNotBlank()) brain.skippedTracks[trackId] else null
+        if (idTs != null && nowMs - idTs < MusicBrainParams.SKIP_TRACK_COOLDOWN_MS) return true
+        val canonTs = if (canonicalKey.isNotBlank()) brain.skippedTracks[canonicalKey] else null
+        return canonTs != null && nowMs - canonTs < MusicBrainParams.SKIP_TRACK_COOLDOWN_MS
+    }
+
+    /**
+     * Records an early music skip so skipped tracks, their slowed/reverb/remix variants,
+     * and repeatedly-skipped languages (e.g. unwanted Bangla/Hindi) are suppressed promptly.
+     */
+    fun applyTrackSkip(
+        brain: MusicBrain,
+        trackId: String,
+        artistKey: String,
+        canonicalKey: String,
+        language: String?,
+        nowMs: Long,
+    ) {
+        if (trackId.isNotBlank()) brain.skippedTracks[trackId] = nowMs
+        if (canonicalKey.isNotBlank()) brain.skippedTracks[canonicalKey] = nowMs
+        if (artistKey.isNotBlank()) {
+            brain.recentRotation[artistKey]?.let { current ->
+                brain.recentRotation[artistKey] = (current * 0.75).coerceAtLeast(0.0)
+            }
+        }
+        if (!language.isNullOrBlank()) {
+            brain.languagePenalties.entries.removeIf { (_, p) ->
+                effectiveLanguagePenalty(p, nowMs) < MusicBrainParams.LANGUAGE_PENALTY_FORGET_BELOW
+            }
+            val existing = brain.languagePenalties[language]
+            val decayed = if (existing != null) effectiveLanguagePenalty(existing, nowMs).roundToInt() else 0
+            val nextCount = (decayed + 1).coerceIn(1, MusicBrainParams.LANGUAGE_PENALTY_MAX_COUNT)
+            brain.languagePenalties[language] = MusicLanguagePenalty(count = nextCount, lastRejectedAt = nowMs)
+        }
+        prune(brain)
+    }
+
+    fun forgiveLanguage(
+        brain: MusicBrain,
+        language: String?,
+        weight: Int = 1,
+    ) {
+        if (language.isNullOrBlank() || weight <= 0) return
+        val existing = brain.languagePenalties[language] ?: return
+        val next = existing.count - weight
+        if (next <= 0) {
+            brain.languagePenalties.remove(language)
+        } else {
+            existing.count = next
+        }
+    }
     fun ema(
         current: Double,
         target: Double,
@@ -377,6 +482,9 @@ internal object MusicBrainLearn {
                     iterator.remove()
                 }
             }
+        }
+        keepTopBy(brain.skippedTracks, MusicBrainParams.SKIPPED_TRACKS_MAX, MusicBrainParams.SKIPPED_TRACKS_MAX) {
+            brain.skippedTracks[it]?.toDouble() ?: 0.0
         }
     }
 }
