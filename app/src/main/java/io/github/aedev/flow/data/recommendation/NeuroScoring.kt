@@ -1341,11 +1341,50 @@ internal object NeuroScoring {
         val evidence = brain.topicEvidence[base] ?: brain.topicEvidence[topic]
         return evidence != null &&
             (
-                evidence.explicitSignals > 0 ||
+                (evidence.explicitSignals >= 1 && evidence.watchSignals >= 1) ||
+                    evidence.explicitSignals >= 3 ||
                     evidence.watchSignals >= 2 ||
                     evidence.videoIds.size >= 2 ||
                     evidence.positiveScore >= 1.2
             )
+    }
+
+    /**
+     * Prevents a single un-watched search query from flooding the Home or Shorts feed. When a
+     * candidate's matched topics exist in the brain solely from 1–2 searches (zero watches), its
+     * relevance boost is damped heavily until the viewer actually watches something on it.
+     */
+    fun calculateSearchOnlyDiscount(
+        videoVector: ContentVector,
+        brain: UserBrain,
+        lemmatizedPreferred: Set<String>,
+        now: Long,
+    ): Double {
+        if (brain.totalInteractions < COLD_START_THRESHOLD || videoVector.topics.isEmpty()) return 1.0
+        var matchedBrainTopics = 0
+        var searchOnlyTopics = 0
+        var newestSearchAt = 0L
+
+        for ((topic, _) in videoVector.topics) {
+            val base = stripDomainTag(topic)
+            val inBrain = brain.globalVector.topics.containsKey(topic) || brain.globalVector.topics.containsKey(base) ||
+                brain.recentVector.topics.containsKey(topic) || brain.recentVector.topics.containsKey(base)
+            if (!inBrain) continue
+            matchedBrainTopics++
+            if (lemmatizedPreferred.any { it.equals(base, ignoreCase = true) }) return 1.0
+            val ev = brain.topicEvidence[base] ?: brain.topicEvidence[topic] ?: continue
+            val isSearchOnly = ev.watchSignals == 0 && ev.videoIds.isEmpty() && ev.explicitSignals in 1..2 && ev.positiveScore < 1.2
+            if (isSearchOnly) {
+                searchOnlyTopics++
+                if (ev.lastSeenAt > newestSearchAt) newestSearchAt = ev.lastSeenAt
+            } else {
+                // At least one confirmed/watched topic matches this video — do not discount it.
+                return 1.0
+            }
+        }
+        if (matchedBrainTopics == 0 || searchOnlyTopics == 0) return 1.0
+        val ageMs = (now - newestSearchAt).coerceAtLeast(0L)
+        return if (ageMs < 6L * 3_600_000L) 0.35 else 0.15
     }
 
     fun calculateTopicProbationPenalty(
@@ -1527,6 +1566,15 @@ internal object NeuroScoring {
         totalScore *= calculateAntiRecommendationPenalty(videoVector, video, brain)
 
         totalScore *= calculateRejectionPatternPenalty(videoVector, brain.rejectionPatterns, p.now)
+
+        if (brain.languagePenalties.isNotEmpty() && !isSub) {
+            val lang = NeuroLanguages.detectContentLanguage(video.title, video.channelName)
+            totalScore *= NeuroLanguages.languagePenaltyMultiplier(brain.languagePenalties, lang, p.now)
+        }
+
+        if (!isSub) {
+            totalScore *= calculateSearchOnlyDiscount(videoVector, brain, p.lemmatizedPreferred, p.now)
+        }
 
         totalScore *= calculateRelevanceFloor(personalityScore, brain.totalInteractions, isSub)
 
