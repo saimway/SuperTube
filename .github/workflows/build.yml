@@ -59,9 +59,35 @@ jobs:
           fi
 
       - name: Build release APK
-        run: >
-          ./gradlew :app:assembleGithubRelease
-          --build-cache --stacktrace
+        run: |
+          set -o pipefail
+          log_file=$(mktemp)
+          trap 'rm -f "$log_file"' EXIT
+          if ! ./gradlew :app:assembleGithubRelease --build-cache --stacktrace 2>&1 | tee "$log_file"; then
+            first_err=$({ grep -E '^(FAILURE:|e: |\* What went wrong:|Execution failed|Caused by:|> Task .*FAILED)' "$log_file" || true; } | head -n 8 | tr '\n' ' ' | sed 's/  */ /g')
+            if [ -n "$first_err" ]; then
+              echo "::warning::Initial build attempt failed: ${first_err:0:400}"
+            fi
+            ./gradlew --stop || true
+            if ! ./gradlew :app:assembleGithubRelease --no-build-cache --no-configuration-cache --stacktrace 2>&1 | tee "$log_file"; then
+              err_summary=$({ grep -E '^(FAILURE:|e: |\* What went wrong:|Execution failed|Caused by:|> Task .*FAILED)' "$log_file" || true; } | head -n 12 | tr '\n' ' ' | sed 's/  */ /g')
+              if [ -n "$err_summary" ]; then
+                echo "::error::${err_summary:0:500}"
+              else
+                tail_err=$(tail -n 10 "$log_file" | tr '\n' ' ' | sed 's/  */ /g')
+                echo "::error::${tail_err:0:500}"
+              fi
+              {
+                echo "### Build release APK failure"
+                echo '```'
+                { grep -E -A 3 '^(FAILURE:|e: |\* What went wrong:|Execution failed|Caused by:|> Task .*FAILED)' "$log_file" || true; } | head -n 60
+                echo "--- tail ---"
+                tail -n 30 "$log_file"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          fi
         env:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
