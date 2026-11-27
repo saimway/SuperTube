@@ -131,6 +131,26 @@ class ShortsFeedRepository
             scope.launch { runCatching { homeFeedCache.deleteChannel(channelId) } }
         }
 
+        suspend fun exclusionsSnapshot(): FeedExclusions = feedExclusions()
+
+        suspend fun rankShorts(shorts: List<ShortVideo>): List<ShortVideo> {
+            if (shorts.size < 2) return shorts
+            val subs = runCatching { subscriptionRepository.getAllSubscriptionIds() }.getOrDefault(emptySet())
+            val ranked = engine.rank(shorts.map { it.toVideo() }, subs)
+            if (ranked.isEmpty()) return shorts
+            val byId = shorts.associateBy { it.id }
+            return ranked.mapNotNull { byId[it.id] }.ifEmpty { shorts }
+        }
+
+        suspend fun adaptInRealTime(
+            shouldDrop: (ShortVideo) -> Boolean,
+            rerank: Boolean = false,
+        ) {
+            val active = lock.withLock { pager } ?: return
+            active.adaptInRealTime(shouldDrop, rerank)
+            saveReserve(active)
+        }
+
         /**
          * Whether a reel that has just been named must leave the queue: sequence reels carry no
          * channel or title until `/player` answers, so the page filters could not judge them.

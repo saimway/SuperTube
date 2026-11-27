@@ -1,5 +1,6 @@
 package io.github.aedev.flow.ui.components.shorts
 
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,7 @@ private const val POSITION_WRITE_STEP_MS = 1_000L
 private const val FIRST_HISTORY_TOUCH_MS = 1_500L
 private const val HISTORY_SAVE_INTERVAL_MS = 5_000L
 private const val ABANDON_POSITION_MS = 1_000L
+private const val INSTANT_SKIP_VISIBLE_MS = 450L
 private const val DWELL_SEED_MS = 8_000L
 private const val AUTO_INTERVAL_MIN_SECONDS = 5
 private const val AUTO_INTERVAL_MAX_SECONDS = 20
@@ -118,11 +120,17 @@ internal fun ShortsReelPlaybackEffects(
 
     // Swiped away before the terminal watch fired: the abandonment is the engine's negative evidence.
     DisposableEffect(short.id, isActive) {
+        val activeSinceMs = if (isActive) SystemClock.elapsedRealtime() else 0L
         onDispose {
             val position = pageState.currentPosition
-            if (isActive && !sessionState.hasRecordedWatched && (pageState.hasStartedPlaying || position >= ABANDON_POSITION_MS)) {
-                viewModel.recordShortProgress(short, position, pageState.duration)
-                viewModel.recordShortAbandoned(short, position, pageState.duration)
+            val visibleMs =
+                if (isActive && activeSinceMs > 0L) (SystemClock.elapsedRealtime() - activeSinceMs).coerceAtLeast(0L) else 0L
+            val abandonedVisibly =
+                pageState.hasStartedPlaying || position >= ABANDON_POSITION_MS || visibleMs >= INSTANT_SKIP_VISIBLE_MS
+            if (isActive && !sessionState.hasRecordedWatched && abandonedVisibly) {
+                val recordedPosition = if (position > 0L) position else visibleMs.coerceAtMost(ABANDON_POSITION_MS)
+                viewModel.recordShortProgress(short, recordedPosition, pageState.duration)
+                viewModel.recordShortAbandoned(short, recordedPosition, pageState.duration)
             }
         }
     }

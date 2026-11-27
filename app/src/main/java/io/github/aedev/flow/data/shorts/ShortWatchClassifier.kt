@@ -30,6 +30,9 @@ object ShortWatchClassifier {
     // Past this absolute position an early swipe is neutral, not a rejection.
     const val ABANDON_NEUTRAL_MS = 15_000L
 
+    // Fallback denominator when duration metadata had not yet arrived on a fast swipe.
+    private const val UNKNOWN_DURATION_ESTIMATE_MS = 15_000L
+
     fun classify(
         positionMs: Long,
         durationMs: Long,
@@ -63,8 +66,22 @@ object ShortWatchClassifier {
         durationMs: Long,
         videoDurationSec: Int,
     ): ShortWatchSignal? {
+        val durationKnown = durationMs > 0L || videoDurationSec > 0
+        if (!durationKnown) {
+            if (positionMs < 4_000L) {
+                val safePos = positionMs.coerceAtLeast(0L)
+                val estPercent = (safePos.toFloat() / UNKNOWN_DURATION_ESTIMATE_MS).coerceIn(0f, 0.25f)
+                return ShortWatchSignal(safePos, UNKNOWN_DURATION_ESTIMATE_MS, estPercent, InteractionType.SKIPPED)
+            }
+            return null
+        }
+
         val base = classify(positionMs, durationMs, videoDurationSec)
         return when {
+            base.position < MIN_SHORT_WATCH_MS -> {
+                base.copy(interaction = InteractionType.SKIPPED)
+            }
+
             base.percent >= ABANDON_WATCH_FRACTION -> {
                 base.copy(interaction = InteractionType.WATCHED)
             }

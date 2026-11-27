@@ -21,6 +21,7 @@ import io.github.aedev.flow.data.model.toVideo
 import io.github.aedev.flow.data.recommendation.BlockedChannelNames
 import io.github.aedev.flow.data.recommendation.FlowNeuroEngine
 import io.github.aedev.flow.data.recommendation.InteractionType
+import io.github.aedev.flow.data.recommendation.NeuroLanguages
 import io.github.aedev.flow.data.repository.YouTubeRepository
 import io.github.aedev.flow.data.shorts.ShortAudioTrack
 import io.github.aedev.flow.data.shorts.ShortDetails
@@ -47,6 +48,7 @@ import io.github.aedev.flow.player.stream.StreamSizeEstimator
 import io.github.aedev.flow.utils.OriginalTextPolicy
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +60,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -83,6 +86,7 @@ class ShortsViewModel
         private var queue: ShortsQueueController? = null
         private var loadedSource: ShortsQueueSource? = null
         private var loadJob: Job? = null
+        private var adaptJob: Job? = null
         private var refreshJob: Job? = null
 
         private val prefetch =
@@ -553,6 +557,13 @@ class ShortsViewModel
                 runCatching {
                     FlowNeuroEngine.onVideoInteraction(video.copy(isShort = true), signal.interaction, percentWatched = signal.percent)
                     FlowNeuroEngine.recordSeenShorts(listOf(video.id))
+                    if (signal.interaction == InteractionType.SKIPPED) {
+                        val rapidSkips =
+                            synchronized(recentShortSwipes) {
+                                recentShortSwipes.takeLast(5).count { it.isSkip }
+                            }
+                        scheduleRealtimeAdaptation(pivotNow = rapidSkips >= 2)
+                    }
                 }.onFailure { e -> Log.w(TAG, "Failed to record abandoned short in FlowNeuro", e) }
             }
         }
@@ -584,6 +595,9 @@ class ShortsViewModel
                     FlowNeuroEngine.onVideoInteraction(video.copy(isShort = true), signal.interaction, percentWatched = signal.percent)
                     FlowNeuroEngine.recordSeenShorts(listOf(video.id))
                     FlowNeuroEngine.onShortDwell(short, positionMs, isTopicStopping)
+                    if (isTopicStopping || (signal.interaction == InteractionType.WATCHED && signal.percent >= 0.70f)) {
+                        scheduleRealtimeAdaptation(pivotNow = isTopicStopping, seedShort = if (isTopicStopping) short else null)
+                    }
                 }.onFailure { e -> Log.w(TAG, "Failed to record watched short in FlowNeuro", e) }
             }
         }
@@ -650,10 +664,82 @@ class ShortsViewModel
             viewModelScope.launch(PerformanceDispatcher.networkIO) {
                 try {
                     FlowNeuroEngine.onShortDwell(short, dwellMs, isTopicStopping)
+                    scheduleRealtimeAdaptation(pivotNow = isTopicStopping, seedShort = if (isTopicStopping) short else null)
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to record dwell in FlowNeuro", e)
                 }
             }
+        }
+
+        private fun scheduleRealtimeAdaptation(
+            pivotNow: Boolean,
+            seedShort: ShortVideo? = null,
+        ) {
+            if (queue == null || loadedSource !is ShortsQueueSource.Feed) return
+            adaptJob?.cancel()
+            adaptJob =
+                viewModelScope.launch(PerformanceDispatcher.networkIO) {
+                    if (!pivotNow) delay(120L)
+                    try {
+                        val exclusions = feed.exclusionsSnapshot()
+                        val avoidedLangs = FlowNeuroEngine.avoidedLanguages()
+                        val shouldDrop: (ShortVideo) -> Boolean = { candidate ->
+                            exclusions.hidesFromRecommendations(candidate.toVideo()) ||
+                                (
+                                    avoidedLangs.isNotEmpty() &&
+                                        NeuroLanguages.detectContentLanguage(candidate.title, candidate.channelName) in avoidedLangs
+                                )
+                        }
+
+                        feed.adaptInRealTime(shouldDrop, rerank = pivotNow)
+
+                        val controller = queue ?: return@launch
+                        val snapshotTail =
+                            withContext(Dispatchers.Main.immediate) {
+                                controller.pruneTail(shouldDrop)
+                                val offset = if (pivotNow) 1 else 2
+                                val items = controller.items.value
+                                val start = (controller.currentIndex.value + offset).coerceAtMost(items.size)
+                                if (start < items.lastIndex) items.subList(start, items.size).toList() else emptyList()
+                            }
+                        val rankedTail = if (snapshotTail.size >= 2) feed.rankShorts(snapshotTail) else emptyList()
+                        val chainItems =
+                            if (seedShort != null) {
+                                runCatching { feed.chainFrom(seedShort).filterNot(shouldDrop) }.getOrDefault(emptyList())
+                            } else {
+                                emptyList()
+                            }
+
+                        withContext(Dispatchers.Main.immediate) {
+                            val liveController = queue ?: return@withContext
+                            var changed = false
+                            if (liveController.pruneTail(shouldDrop) != ShortsQueueChange.None) changed = true
+                            if (rankedTail.isNotEmpty()) {
+                                val byId = rankedTail.associateBy { it.id }
+                                if (
+                                    liveController.adaptTail(keepImmediateNext = !pivotNow) { tail ->
+                                        val tailIds = tail.mapTo(HashSet(tail.size)) { item -> item.id }
+                                        val ordered = rankedTail.filter { it.id in tailIds }
+                                        val rest = tail.filterNot { it.id in byId }
+                                        ordered + rest
+                                    } != ShortsQueueChange.None
+                                ) {
+                                    changed = true
+                                }
+                            }
+                            if (chainItems.isNotEmpty()) {
+                                if (liveController.mergeDiscovery(chainItems) != ShortsQueueChange.None) changed = true
+                            }
+                            if (changed) publishQueue()
+                            val remaining = liveController.items.value.size - 1 - liveController.currentIndex.value
+                            if (remaining <= PREFETCH_TRIGGER_REMAINING) loadMoreShorts()
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Real-time Shorts queue adaptation skipped: ${e.message}")
+                    }
+                }
         }
 
         fun onScreenVisible() {
@@ -718,6 +804,7 @@ class ShortsViewModel
 
                     queue?.remove(short.id)
                     publishQueue()
+                    scheduleRealtimeAdaptation(pivotNow = true)
 
                     _snackbarMessage.value = context.getString(R.string.shorts_showing_less_like_this)
                 } catch (e: Exception) {
