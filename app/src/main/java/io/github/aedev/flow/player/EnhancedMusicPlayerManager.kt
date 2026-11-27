@@ -794,18 +794,27 @@ object EnhancedMusicPlayerManager {
         }
     }
 
-    fun updateAutomixItems(items: List<MusicTrack>) {
+    fun updateAutomixItems(
+        items: List<MusicTrack>,
+        avoidedLanguages: Set<String> = emptySet(),
+    ) {
         _automixItems.value =
             MusicRadioPlanner.seedPool(
                 candidates = items,
                 currentId = _currentTrack.value?.videoId,
                 queueIds = _queue.value.mapTo(HashSet()) { it.videoId },
+                seedTrack = _currentTrack.value,
+                queueTracks = _queue.value,
+                avoidedLanguages = avoidedLanguages,
             )
         triggerQueueSave()
     }
 
     /** Radio top-up path: grows the suggestion pool without disturbing what's already in it. */
-    fun appendAutomixItems(items: List<MusicTrack>) {
+    fun appendAutomixItems(
+        items: List<MusicTrack>,
+        avoidedLanguages: Set<String> = emptySet(),
+    ) {
         if (items.isEmpty()) return
         val existing = _automixItems.value
         val grown =
@@ -814,10 +823,23 @@ object EnhancedMusicPlayerManager {
                 incoming = items,
                 currentId = _currentTrack.value?.videoId,
                 queueIds = _queue.value.mapTo(HashSet()) { it.videoId },
+                seedTrack = _currentTrack.value,
+                queueTracks = _queue.value,
+                avoidedLanguages = avoidedLanguages,
             )
         if (grown === existing) return
         _automixItems.value = grown
         triggerQueueSave()
+    }
+
+    fun pruneAutomixItems(shouldRemove: (MusicTrack) -> Boolean) {
+        val current = _automixItems.value
+        if (current.isEmpty()) return
+        val filtered = current.filterNot(shouldRemove)
+        if (filtered.size != current.size) {
+            _automixItems.value = filtered
+            triggerQueueSave()
+        }
     }
 
     fun removeAutomixItem(videoId: String) {
