@@ -54,10 +54,16 @@ import io.github.aedev.flow.data.local.QueuePersistence
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.YouTubeMusicService
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.data.music.model.dedupeCanonicalSongs
+import io.github.aedev.flow.data.music.model.isSameSongOrVariant
+import io.github.aedev.flow.data.music.model.musicDetectLanguage
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 import io.github.aedev.flow.data.newmusic.InnertubeMusicService
 import io.github.aedev.flow.data.profile.ActiveProfile
 import io.github.aedev.flow.data.profile.ProfileSwitchGate
 import io.github.aedev.flow.data.recommendation.music.MusicBrainEngine
+import io.github.aedev.flow.data.recommendation.music.isHiddenArtist
+import io.github.aedev.flow.data.recommendation.music.onRepeatShelf
 import io.github.aedev.flow.data.scrobble.ScrobbleRules
 import io.github.aedev.flow.extensions.setOffloadEnabled
 import io.github.aedev.flow.innertube.YouTube
@@ -579,7 +585,13 @@ class Media3MusicService : MediaLibraryService() {
                         videoSwitch.consumeSwap(mediaItem?.mediaId) &&
                             reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
                     if (!versionSwap) {
-                        finalizeListenSession()
+                        val userSkippedTransition =
+                            mediaItem != null &&
+                                (
+                                    reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ||
+                                        reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
+                                )
+                        finalizeListenSession(fromUserSkip = userSkippedTransition)
                         startListenSession(mediaItem?.mediaId)
                         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) failureStreak.reset()
                     }
@@ -867,7 +879,7 @@ class Media3MusicService : MediaLibraryService() {
         }
     }
 
-    private fun finalizeListenSession() {
+    private fun finalizeListenSession(fromUserSkip: Boolean = false) {
         closePlayingSegment()
         val mediaId = learnMediaId
         val pinnedTrack = learnTrack
@@ -888,7 +900,9 @@ class Media3MusicService : MediaLibraryService() {
             Log.d(TAG, "listen finalize skipped: $mediaId is a video from a video list (#1657)")
             return
         }
-        if (mediaId.isNullOrBlank() || playedMs <= 0) {
+        val elapsedSinceStartMs = if (startedAtMs > 0L) System.currentTimeMillis() - startedAtMs else 0L
+        val earlyBufferSkip = fromUserSkip && playedMs <= 0L && elapsedSinceStartMs in 350L..30_000L
+        if (mediaId.isNullOrBlank() || (playedMs <= 0L && !earlyBufferSkip)) {
             Log.d(TAG, "listen finalize skipped: id=$mediaId playedMs=$playedMs")
             return
         }
@@ -899,8 +913,22 @@ class Media3MusicService : MediaLibraryService() {
             return
         }
         val durationMs = if (track.duration > 0) track.duration.toLong() * 1000 else pinnedDurationMs
-        if (durationMs <= 0) {
-            Log.w(TAG, "listen finalize: no duration for $mediaId")
+        if (fromUserSkip && (durationMs <= 0L || playedMs < durationMs * 0.25)) {
+            val skipFraction = if (durationMs > 0L) (playedMs.toDouble() / durationMs).coerceIn(0.0, 1.0) else 0.0
+            musicBrain.onTrackSkippedAsync(track, skipFraction)
+            val skippedLang = musicDetectLanguage(track.title, track.artist)
+            lifecycleScope.launch(Dispatchers.Default) {
+                val avoided = musicBrain.avoidedLanguagesNow()
+                io.github.aedev.flow.player.EnhancedMusicPlayerManager.pruneAutomixItems { cand ->
+                    cand.isSameSongOrVariant(track) ||
+                        (!skippedLang.isNullOrBlank() &&
+                            skippedLang in avoided &&
+                            musicDetectLanguage(cand.title, cand.artist) == skippedLang)
+                }
+            }
+        }
+        if (playedMs <= 0L || durationMs <= 0L) {
+            if (!earlyBufferSkip) Log.w(TAG, "listen finalize: no duration for $mediaId")
             return
         }
 
@@ -1598,6 +1626,33 @@ class Media3MusicService : MediaLibraryService() {
         startRadio(currentId)
     }
 
+    private fun filterRadioCandidates(
+        raw: List<MusicTrack>,
+        seedId: String?,
+        excludedTracks: List<MusicTrack>,
+        hiddenArtists: Set<String>,
+        avoidedLanguages: Set<String>,
+        allowFanEdits: Boolean,
+    ): List<MusicTrack> {
+        val baseFiltered =
+            raw
+                .distinctBy { it.videoId }
+                .filterNot { cand ->
+                    cand.videoId == seedId ||
+                        cand.isHiddenArtist(hiddenArtists) ||
+                        excludedTracks.any { it.isSameSongOrVariant(cand) }
+                }
+        val langAndEditFiltered =
+            baseFiltered
+                .filterNot { !allowFanEdits && musicIsFanEditVariant(it.title) }
+                .filterNot { cand ->
+                    avoidedLanguages.isNotEmpty() &&
+                        musicDetectLanguage(cand.title, cand.artist) in avoidedLanguages
+                }
+        val clean = langAndEditFiltered.ifEmpty { baseFiltered }
+        return clean.dedupeCanonicalSongs()
+    }
+
     private fun startRadio(seedId: String) {
         automixJob?.cancel()
         radioTopUpJob?.cancel()
@@ -1606,6 +1661,7 @@ class Media3MusicService : MediaLibraryService() {
         automixJob =
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
+                    val manager = io.github.aedev.flow.player.EnhancedMusicPlayerManager
                     var page = YouTube.next(WatchEndpoint(playlistId = "RDAMVM$seedId")).getOrNull()
                     val nestedPlaylistId = page?.endpoint?.playlistId
                     if (page != null && page.items.size <= 1 && !nestedPlaylistId.isNullOrBlank()) {
@@ -1615,27 +1671,55 @@ class Media3MusicService : MediaLibraryService() {
                         page = YouTube.next(WatchEndpoint(videoId = seedId)).getOrNull() ?: page
                     }
 
-                    var mapped =
+                    val rawPageTracks =
                         page
                             ?.items
                             .orEmpty()
                             .mapNotNull { InnertubeMusicService.convertToMusicTrack(it) }
-                            .filterNot { it.videoId == seedId }
-                            .distinctBy { it.videoId }
+                    val seedTrack =
+                        manager.currentTrack.value?.takeIf { it.videoId == seedId }
+                            ?: manager.queue.value.firstOrNull { it.videoId == seedId }
+                            ?: rawPageTracks.firstOrNull { it.videoId == seedId }
+                    val allowFanEdits = seedTrack?.let { musicIsFanEditVariant(it.title) } == true
+                    val hidden = musicBrain.hiddenArtists.value
+                    val avoidedLangs = musicBrain.avoidedLanguagesNow()
+                    val excluded = (listOfNotNull(seedTrack) + manager.queue.value).distinctBy { it.videoId }
+
+                    var usedRelatedFallback = false
+                    var mapped = filterRadioCandidates(rawPageTracks, seedId, excluded, hidden, avoidedLangs, allowFanEdits)
 
                     if (mapped.isEmpty()) {
                         // Related fallback carries no continuation; the pool later
                         // reseeds from the related tracks closest to the seed.
                         radioContinuation = null
                         radioEndpoint = null
-                        mapped =
-                            YouTubeMusicService
-                                .getRelatedMusic(seedId, 20, audioOnly = true)
-                                .filterNot { it.videoId == seedId }
-                                .distinctBy { it.videoId }
+                        usedRelatedFallback = true
+                        val relatedRaw = YouTubeMusicService.getRelatedMusic(seedId, 24, audioOnly = true)
+                        mapped = filterRadioCandidates(relatedRaw, seedId, excluded, hidden, avoidedLangs, allowFanEdits)
                     } else {
                         radioContinuation = page?.continuation
                         radioEndpoint = page?.endpoint
+                    }
+
+                    if (mapped.size < 10) {
+                        val extraRaw = ArrayList<MusicTrack>(24)
+                        if (!usedRelatedFallback) {
+                            extraRaw += YouTubeMusicService.getRelatedMusic(seedId, 20, audioOnly = true)
+                        }
+                        val diversitySeeds =
+                            (mapped.take(2) + musicBrain.onRepeatShelf().take(4))
+                                .filterNot { cand ->
+                                    cand.videoId == seedId ||
+                                        seedTrack?.isSameSongOrVariant(cand) == true ||
+                                        (avoidedLangs.isNotEmpty() && musicDetectLanguage(cand.title, cand.artist) in avoidedLangs)
+                                }.distinctBy { it.videoId }
+                                .take(2)
+                        diversitySeeds.forEach { altSeed ->
+                            extraRaw += YouTubeMusicService.getRelatedMusic(altSeed.videoId, 15, audioOnly = true)
+                        }
+                        if (extraRaw.isNotEmpty()) {
+                            mapped = filterRadioCandidates(mapped + extraRaw, seedId, excluded, hidden, avoidedLangs, allowFanEdits)
+                        }
                     }
 
                     radioAnchors = MusicRadioPlanner.radioAnchors(seedId, mapped)
@@ -1646,13 +1730,12 @@ class Media3MusicService : MediaLibraryService() {
                     val ranked =
                         musicBrain.sequenceRadioBatch(
                             musicBrain.rankTracks(mapped, "radio"),
-                            io.github.aedev.flow.player.EnhancedMusicPlayerManager.currentTrack.value,
+                            manager.currentTrack.value,
                             MusicRadioPlanner.MAX_POOL_SIZE,
                         )
                     Log.d(TAG, "Radio seeded from $seedId: ${ranked.size} tracks, continuation=${radioContinuation != null}")
                     if (ranked.isNotEmpty()) {
-                        io.github.aedev.flow.player.EnhancedMusicPlayerManager
-                            .updateAutomixItems(ranked)
+                        manager.updateAutomixItems(ranked, avoidedLangs)
                         // The queue may already be short (or ended) by the time the
                         // seed arrives — move pool tracks into it right away.
                         withContext(Dispatchers.Main) { maybeExtendRadio() }
@@ -1743,10 +1826,45 @@ class Media3MusicService : MediaLibraryService() {
                     radioContinuation = page.continuation
                     radioEndpoint = page.endpoint
 
-                    val mapped =
+                    val rawMapped =
                         page.items
                             .mapNotNull { InnertubeMusicService.convertToMusicTrack(it) }
                             .distinctBy { it.videoId }
+                    val currentSeed = manager.currentTrack.value
+                    val allowFanEdits = currentSeed?.let { musicIsFanEditVariant(it.title) } == true
+                    val hidden = musicBrain.hiddenArtists.value
+                    val avoidedLangs = musicBrain.avoidedLanguagesNow()
+                    val excluded =
+                        (listOfNotNull(currentSeed) + manager.queue.value + manager.automixItems.value)
+                            .distinctBy { it.videoId }
+                    var mapped =
+                        filterRadioCandidates(
+                            raw = rawMapped,
+                            seedId = currentSeed?.videoId,
+                            excludedTracks = excluded,
+                            hiddenArtists = hidden,
+                            avoidedLanguages = avoidedLangs,
+                            allowFanEdits = allowFanEdits,
+                        )
+                    if (mapped.size < 6) {
+                        val altAnchor = MusicRadioPlanner.nextAnchor(radioAnchors, usedRadioAnchors)
+                        if (altAnchor != null) {
+                            usedRadioAnchors = usedRadioAnchors + altAnchor
+                            val altPage = YouTube.next(WatchEndpoint(playlistId = "RDAMVM$altAnchor")).getOrNull()
+                            val altRaw = altPage?.items.orEmpty().mapNotNull { InnertubeMusicService.convertToMusicTrack(it) }
+                            if (altRaw.isNotEmpty()) {
+                                mapped =
+                                    filterRadioCandidates(
+                                        raw = mapped + altRaw,
+                                        seedId = currentSeed?.videoId,
+                                        excludedTracks = excluded,
+                                        hiddenArtists = hidden,
+                                        avoidedLanguages = avoidedLangs,
+                                        allowFanEdits = allowFanEdits,
+                                    )
+                            }
+                        }
+                    }
                     val tail = manager.automixItems.value.lastOrNull() ?: manager.queue.value.lastOrNull()
                     val ranked =
                         musicBrain.sequenceRadioBatch(
@@ -1756,7 +1874,7 @@ class Media3MusicService : MediaLibraryService() {
                         )
                     Log.d(TAG, "Radio pool topped up with ${ranked.size} tracks, continuation=${radioContinuation != null}")
                     if (ranked.isNotEmpty()) {
-                        manager.appendAutomixItems(ranked)
+                        manager.appendAutomixItems(ranked, avoidedLangs)
                         // If the queue ended while this fetch was in flight, feed it
                         // now — no further transition will ever call maybeExtendRadio.
                         // Re-entry is safe: this job is still active, so a nested
