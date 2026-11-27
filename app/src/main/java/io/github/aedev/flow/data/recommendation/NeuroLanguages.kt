@@ -6,7 +6,10 @@
 
 package io.github.aedev.flow.data.recommendation
 
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * Which language a title is written in, and that language's stop words (#907). Stop lists are data
@@ -205,6 +208,163 @@ internal object NeuroLanguages {
     /** [detect] over raw [text], such as a title and the first line of its description. */
     fun detectText(text: String): String? = detect(NeuroText.words(NeuroText.fold(text)))
 
+    private const val LANGUAGE_PENALTY_HALF_LIFE_MS = 14L * 86_400_000L
+    private const val LANGUAGE_PENALTY_FORGET_BELOW = 0.35
+    private const val MAX_LANGUAGE_PENALTY_COUNT = 8
+
+    private val PrimaryBanglaLatinMarkers =
+        setOf("bangla", "bengali", "natok", "gaan", "bangladeshi", "valobasha", "bhalobasha", "oporadhi")
+    private val SecondaryBanglaLatinMarkers =
+        setOf("kolkata", "dhaka", "tumi", "amar", "tomar", "moner", "rabindra", "nazrul", "baul", "kotha", "boshonto")
+    private val BanglaChannelSignatures =
+        listOf("coke studio bangla", "svf", "sangeeta", "g-series", "g series", "eagle music")
+    private val PrimaryHindiLatinMarkers =
+        setOf("hindi", "bollywood", "gaana", "bhajan", "qawwali", "ghazal", "shayari", "bhojpuri", "haryanvi", "aashiqui")
+    private val SecondaryHindiLatinMarkers =
+        setOf("pyaar", "pyar", "ishq", "mohabbat", "bewafa", "zindagi", "zindgi", "sanam", "judai", "tumhara", "tere")
+    private val IndicChannelSignatures =
+        listOf("t-series", "t series", "zee music", "sony music india", "saregama", "tips official", "yrf")
+
+    /**
+     * Best-effort content language detection across native scripts, function words, and unmistakable
+     * Romanized South-Asian markers (used when building negative language avoidance signals).
+     */
+    fun detectContentLanguage(
+        text: String,
+        channelName: String = "",
+    ): String? {
+        val combined = if (channelName.isBlank()) text else "$text\n$channelName"
+        detectMixedRegionalScript(combined)?.let { return it }
+        detectText(combined)?.let { return it }
+
+        val foldedText = NeuroText.fold(combined).lowercase(Locale.ROOT)
+        if (BanglaChannelSignatures.any { it in foldedText }) return "bn"
+        if (IndicChannelSignatures.any { it in foldedText }) return "hi"
+
+        val words = NeuroText.words(foldedText)
+        if (words.isEmpty()) return null
+
+        var banglaPrimary = 0
+        var banglaSecondary = 0
+        var hindiPrimary = 0
+        var hindiSecondary = 0
+        for (w in words) {
+            when {
+                w in PrimaryBanglaLatinMarkers -> banglaPrimary++
+                w in SecondaryBanglaLatinMarkers -> banglaSecondary++
+                w in PrimaryHindiLatinMarkers -> hindiPrimary++
+                w in SecondaryHindiLatinMarkers -> hindiSecondary++
+            }
+        }
+        return when {
+            banglaPrimary >= 1 || banglaSecondary >= 2 -> "bn"
+            hindiPrimary >= 1 || hindiSecondary >= 2 -> "hi"
+            else -> null
+        }
+    }
+
+    /**
+     * Detects distinctive regional scripts even when a music or video title wraps a short native
+     * phrase in longer English metadata such as "(Official Music Video) | Slowed + Reverb".
+     */
+    private fun detectMixedRegionalScript(text: String): String? {
+        var bengali = 0
+        var devanagari = 0
+        var tamil = 0
+        var telugu = 0
+        var hangul = 0
+        var kana = 0
+        for (c in text) {
+            if (!c.isLetter()) continue
+            when (Character.UnicodeScript.of(c.code)) {
+                Character.UnicodeScript.BENGALI -> bengali++
+                Character.UnicodeScript.DEVANAGARI -> devanagari++
+                Character.UnicodeScript.TAMIL -> tamil++
+                Character.UnicodeScript.TELUGU -> telugu++
+                Character.UnicodeScript.HANGUL -> hangul++
+                Character.UnicodeScript.HIRAGANA, Character.UnicodeScript.KATAKANA -> kana++
+                else -> Unit
+            }
+        }
+        return when {
+            bengali >= 2 -> "bn"
+            devanagari >= 2 -> "hi"
+            tamil >= 2 -> "ta"
+            telugu >= 2 -> "te"
+            kana >= 2 -> "ja"
+            hangul >= 2 -> "ko"
+            else -> null
+        }
+    }
+
+    fun effectiveLanguagePenalty(
+        signal: RejectionSignal,
+        now: Long,
+    ): Double {
+        if (signal.count <= 0) return 0.0
+        val ageMs = (now - signal.lastRejectedAt).coerceAtLeast(0L)
+        return signal.count * 0.5.pow(ageMs.toDouble() / LANGUAGE_PENALTY_HALF_LIFE_MS)
+    }
+
+    fun recordLanguageAvoidance(
+        penalties: Map<String, RejectionSignal>,
+        language: String?,
+        primaryProfile: String?,
+        now: Long,
+        weight: Int = 1,
+    ): Map<String, RejectionSignal> {
+        if (language.isNullOrBlank() || language == primaryProfile || weight <= 0) return penalties
+        val next = LinkedHashMap<String, RejectionSignal>(penalties.size + 1)
+        penalties.forEach { (lang, signal) ->
+            if (effectiveLanguagePenalty(signal, now) >= LANGUAGE_PENALTY_FORGET_BELOW) {
+                next[lang] = signal
+            }
+        }
+        val existing = next[language]
+        val decayedCount = if (existing != null) effectiveLanguagePenalty(existing, now).roundToInt() else 0
+        val newCount = (decayedCount + weight).coerceIn(1, MAX_LANGUAGE_PENALTY_COUNT)
+        next[language] = RejectionSignal(count = newCount, lastRejectedAt = now)
+        return next
+    }
+
+    fun forgiveLanguage(
+        penalties: Map<String, RejectionSignal>,
+        language: String?,
+    ): Map<String, RejectionSignal> {
+        if (language.isNullOrBlank() || language !in penalties) return penalties
+        val existing = penalties.getValue(language)
+        return if (existing.count <= 1) {
+            penalties - language
+        } else {
+            penalties + (language to existing.copy(count = existing.count - 1))
+        }
+    }
+
+    fun languagePenaltyMultiplier(
+        penalties: Map<String, RejectionSignal>,
+        language: String?,
+        now: Long,
+    ): Double {
+        if (penalties.isEmpty() || language.isNullOrBlank()) return 1.0
+        val signal = penalties[language] ?: return 1.0
+        val effective = effectiveLanguagePenalty(signal, now)
+        return when {
+            effective >= 2.8 -> 0.05
+            effective >= 1.8 -> 0.15
+            effective >= 0.8 -> 0.35
+            else -> 1.0
+        }
+    }
+
+    fun avoidedLanguageSet(
+        penalties: Map<String, RejectionSignal>,
+        now: Long,
+        threshold: Double = 0.85,
+    ): Set<String> =
+        penalties.entries
+            .filter { (_, signal) -> effectiveLanguagePenalty(signal, now) >= threshold }
+            .mapTo(HashSet()) { it.key }
+
     /**
      * [profile] and [votes] after one more title whose language was [detected]. Every
      * [PROFILE_WINDOW] confident titles the votes are counted, and a language with
@@ -239,6 +399,9 @@ internal object NeuroLanguages {
         var kana = 0
         var han = 0
         var devanagari = 0
+        var bengali = 0
+        var tamil = 0
+        var telugu = 0
         var arabic = 0
         var cyrillic = 0
         var persian = false
@@ -269,6 +432,18 @@ internal object NeuroLanguages {
                     devanagari++
                 }
 
+                Character.UnicodeScript.BENGALI -> {
+                    bengali++
+                }
+
+                Character.UnicodeScript.TAMIL -> {
+                    tamil++
+                }
+
+                Character.UnicodeScript.TELUGU -> {
+                    telugu++
+                }
+
                 Character.UnicodeScript.ARABIC -> {
                     arabic++
                     if (c in PERSIAN_LETTERS) persian = true
@@ -292,7 +467,7 @@ internal object NeuroLanguages {
             // Kana and Hangul belong to one language each, so brand names around them do not matter.
             if (kana >= MIN_SCRIPT_LETTERS) return "ja"
             if (hangul >= MIN_SCRIPT_LETTERS) return "ko"
-            val others = hangul + kana + han + devanagari + arabic + cyrillic
+            val others = hangul + kana + han + devanagari + bengali + tamil + telugu + arabic + cyrillic
             if (others < MIN_SCRIPT_LETTERS || others < latin) return null
             return when {
                 kana > 0 -> {
@@ -305,6 +480,18 @@ internal object NeuroLanguages {
 
                 devanagari >= MIN_SCRIPT_LETTERS -> {
                     "hi"
+                }
+
+                bengali >= MIN_SCRIPT_LETTERS -> {
+                    "bn"
+                }
+
+                tamil >= MIN_SCRIPT_LETTERS -> {
+                    "ta"
+                }
+
+                telugu >= MIN_SCRIPT_LETTERS -> {
+                    "te"
                 }
 
                 arabic >= MIN_SCRIPT_LETTERS -> {

@@ -18,10 +18,35 @@ package io.github.aedev.flow.data.recommendation
  */
 internal object NeuroSearchLearning {
     private const val MAX_QUERY_WORDS = 8
-    private const val LEARNING_RATE = 0.05
-    private const val EVIDENCE_SCORE = 0.5
+    private const val LEARNING_RATE = 0.025
+    private const val EVIDENCE_SCORE = 0.35
     private const val EVIDENCE_SCORE_CAP = 50.0
     private const val WEAK_WORD_SHARE = 0.25
+
+    private val UtilityTokens =
+        setOf(
+            "4k", "8k", "2k", "1080p", "720p", "1440p", "2160p",
+            "60fps", "120fps", "240fps", "hdr", "hdr10", "hdr10+", "dolby", "vision", "uhd",
+            "ultra", "hd", "video", "videos", "clip", "clips", "footage", "sample", "demo",
+            "test", "testing", "check", "checker", "benchmark",
+            "wifi", "internet", "speed", "bandwidth", "network", "connection", "latency", "ping",
+            "screen", "display", "oled", "amoled", "lcd", "burn", "dead", "hz", "fps", "refresh", "rate",
+            "speaker", "speakers", "mic", "microphone", "left", "right",
+        )
+    private val UtilityTriggerTokens =
+        setOf(
+            "4k", "8k", "2k", "1080p", "2160p", "60fps", "120fps", "240fps", "hdr", "hdr10",
+            "uhd", "test", "testing", "wifi", "speed", "bandwidth", "latency", "ping", "oled", "amoled",
+        )
+
+    /** Hardware/connection/resolution test searches (e.g. "4k video", "wifi speed test") should never steer taste. */
+    fun isUtilityTestQuery(rawQuery: String): Boolean {
+        val folded = NeuroText.fold(rawQuery).lowercase().trim()
+        if (folded.isEmpty()) return false
+        val tokens = NeuroText.words(folded).filter { it.length >= 2 }
+        if (tokens.isEmpty()) return false
+        return tokens.any { it in UtilityTriggerTokens } && tokens.all { it in UtilityTokens }
+    }
 
     private val Templates =
         listOf(
@@ -87,6 +112,7 @@ internal object NeuroSearchLearning {
         tokenizer: NeuroTokenizer,
         now: Long,
     ): UserBrain? {
+        if (isUtilityTestQuery(rawQuery)) return null
         val topics = queryTopics(rawQuery, tokenizer, brain.blockedTopics, IdfSnapshot(brain.idfWordFrequency, brain.idfTotalDocuments))
         if (topics.phrases.isEmpty()) return null
 

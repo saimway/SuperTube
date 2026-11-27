@@ -14,6 +14,9 @@ data class MusicRankInput(
     val trackId: String,
     val artistKey: String,
     val genre: String? = null,
+    val canonicalKey: String = "",
+    val language: String? = null,
+    val isFanEdit: Boolean = false,
 )
 
 /** Per-surface term weights. Surfaces not listed fall through to the balanced default. */
@@ -67,7 +70,7 @@ internal object MusicBrainRanker {
             }
 
             SURFACE_RADIO -> {
-                MusicSurfaceWeights(fam = 0.35, act = 0.20, rot = 0.20, prox = 0.15, cooc = 0.25, ctx = 0.20, discovery = 0.25)
+                MusicSurfaceWeights(fam = 0.22, act = 0.08, rot = 0.15, prox = 0.18, cooc = 0.28, ctx = 0.16, discovery = 0.42)
             }
 
             SURFACE_SIMILAR, SURFACE_DISCOVER, SURFACE_DAILY_DISCOVER -> {
@@ -118,12 +121,19 @@ internal object MusicBrainRanker {
         return nowMs - ts < MusicBrainParams.DISLIKE_COOLDOWN_MS
     }
 
+    private fun isFreshnessSurface(surface: String): Boolean =
+        surface == SURFACE_RADIO ||
+            surface == SURFACE_SIMILAR ||
+            surface == SURFACE_DISCOVER ||
+            surface == SURFACE_DAILY_DISCOVER
+
     private fun scoreCandidate(
         brain: MusicBrain,
         input: MusicRankInput,
         w: MusicSurfaceWeights,
         anchors: List<String>,
         bucket: MusicTimeBucket,
+        surface: String,
         nowMs: Long,
     ): Double {
         val artist = input.artistKey
@@ -138,7 +148,26 @@ internal object MusicBrainRanker {
 
         val base = w.fam * fam + w.act * act + w.rot * rot + w.prox * prox + w.cooc * cooc + w.ctx * ctx + discovery
         val cooldown = if (isInDislikeCooldown(brain, artist, nowMs)) MusicBrainParams.DISLIKE_COOLDOWN_MULTIPLIER else 1.0
-        return base * cooldown
+        val skipCooldown =
+            if (MusicBrainLearn.isTrackInSkipCooldown(brain, input.trackId, input.canonicalKey, nowMs)) {
+                MusicBrainParams.SKIP_TRACK_COOLDOWN_MULTIPLIER
+            } else {
+                1.0
+            }
+        val recentPlayPenalty =
+            if (isFreshnessSurface(surface)) {
+                val lastPlayTs = brain.trackPlays[input.trackId]?.lastOrNull() ?: 0L
+                if (lastPlayTs > 0L && nowMs - lastPlayTs < MusicBrainParams.RECENT_RADIO_TRACK_SUPPRESS_MS) {
+                    MusicBrainParams.RECENT_RADIO_TRACK_MULTIPLIER
+                } else {
+                    1.0
+                }
+            } else {
+                1.0
+            }
+        val fanEditPenalty = if (input.isFanEdit) MusicBrainParams.FAN_EDIT_MULTIPLIER else 1.0
+        val langPenalty = MusicBrainLearn.languagePenaltyMultiplier(brain, input.language, nowMs)
+        return base * cooldown * skipCooldown * recentPlayPenalty * fanEditPenalty * langPenalty
     }
 
     fun surfaceTargetNovelty(
@@ -191,13 +220,23 @@ internal object MusicBrainRanker {
         val bucket = MusicTimeBucket.fromTimestamp(nowMs)
         val anchors = brain.topArtists(MusicBrainParams.COOC_ANCHOR_ARTISTS).map { it.first }
 
-        val scores = inputs.map { scoreCandidate(brain, it, w, anchors, bucket, nowMs) }
+        val scores = inputs.map { scoreCandidate(brain, it, w, anchors, bucket, surface, nowMs) }
         val order =
             inputs.indices
-                .sortedWith(compareByDescending<Int> { scores[it] }.thenBy { it })
+                .sortedWith(
+                    compareByDescending<Int> { scores[it] }
+                        .thenBy { inputs[it].isFanEdit }
+                        .thenBy { it },
+                )
                 .filterNot { brain.isArtistBlocked(inputs[it].artistKey) }
 
-        val (suppressed, primary) = order.partition { isInDislikeCooldown(brain, inputs[it].artistKey, nowMs) }
+        val (suppressed, primary) =
+            order.partition { idx ->
+                val inp = inputs[idx]
+                isInDislikeCooldown(brain, inp.artistKey, nowMs) ||
+                    MusicBrainLearn.isTrackInSkipCooldown(brain, inp.trackId, inp.canonicalKey, nowMs) ||
+                    MusicBrainLearn.languagePenaltyMultiplier(brain, inp.language, nowMs) <= 0.15
+            }
 
         val target = surfaceTargetNovelty(surface, brain.discoveryAppetite)
         val novel = primary.filter { inputs[it].artistKey.isNotEmpty() && inputs[it].artistKey !in brain.seenArtists }.toSet()

@@ -18,6 +18,7 @@ class FeedExclusions(
     val blockedChannelIds: Set<String> = emptySet(),
     val suppressedChannelIds: Set<String> = emptySet(),
     private val blockedText: (title: String, channelName: String) -> Boolean = { _, _ -> false },
+    private val avoidedLanguage: (title: String, channelName: String) -> Boolean = { _, _ -> false },
 ) {
     val isEmpty: Boolean
         get() = suppressedVideoIds.isEmpty() && blockedChannelIds.isEmpty() && suppressedChannelIds.isEmpty()
@@ -29,14 +30,15 @@ class FeedExclusions(
     fun hidesFromRecommendations(video: Video): Boolean =
         hides(video) ||
             (video.channelId.isNotBlank() && video.channelId in suppressedChannelIds) ||
-            blockedText(video.title, video.channelName)
+            blockedText(video.title, video.channelName) ||
+            avoidedLanguage(video.title, video.channelName)
 
     /** The same exclusions, also hiding every video from [channelIds]. */
     fun hidingChannels(channelIds: Set<String>): FeedExclusions =
         if (channelIds.isEmpty()) {
             this
         } else {
-            FeedExclusions(suppressedVideoIds, blockedChannelIds + channelIds, suppressedChannelIds, blockedText)
+            FeedExclusions(suppressedVideoIds, blockedChannelIds + channelIds, suppressedChannelIds, blockedText, avoidedLanguage)
         }
 
     companion object {

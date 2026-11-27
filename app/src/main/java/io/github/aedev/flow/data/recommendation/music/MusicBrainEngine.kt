@@ -15,6 +15,9 @@ import io.github.aedev.flow.data.music.model.ArtistDetails
 import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicPlaylist
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.data.music.model.musicCanonicalTitleKey
+import io.github.aedev.flow.data.music.model.musicDetectLanguage
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -98,6 +101,7 @@ class MusicBrainEngine
                     }
                     isInitialized = true
                     refreshHiddenArtistsLocked()
+                    refreshAvoidedLanguagesLocked()
                     Log.i(TAG, "Initialized: plays=${brain.totalPlays} artists=${brain.artistAffinity.size}")
                 }
             }
@@ -140,7 +144,11 @@ class MusicBrainEngine
                             ?.takeIf { now - it.second < MusicBrainParams.SESSION_GAP_MS && it.first != signal.artistKey }
                             ?.first
                     counted = MusicBrainLearn.applyMusicSignal(brain, signal, crossed, now, coArtist)
-                    if (counted) lastCounted = signal.artistKey to now
+                    if (counted) {
+                        lastCounted = signal.artistKey to now
+                        MusicBrainLearn.forgiveLanguage(brain, track.detectedLanguage(), weight = 1)
+                        refreshAvoidedLanguagesLocked()
+                    }
                     Log.i(TAG, "listen ${track.videoId} pct=${"%.2f".format(pct)} counted=$counted artist=${signal.artistKey}")
                 } else {
                     Log.d(TAG, "listen ${track.videoId} pct=$pct below first milestone")
@@ -195,6 +203,8 @@ class MusicBrainEngine
             mutex.withLock {
                 val wasNewArtist = signal.artistKey !in brain.seenArtists
                 val counted = MusicBrainLearn.applyMusicSignal(brain, signal, emptyList(), now, coArtist = null)
+                MusicBrainLearn.forgiveLanguage(brain, track.detectedLanguage(), weight = 2)
+                refreshAvoidedLanguagesLocked()
                 if (counted) {
                     lastCounted = signal.artistKey to now
                     MusicStatsLedgerOps.record(
@@ -212,6 +222,67 @@ class MusicBrainEngine
                 }
             }
             scheduleDebouncedSave()
+        }
+
+        /**
+         * Records an immediate/early skip (<25% played) so the skipped song, its variants
+         * (slowed/reverb/sped-up/8D), and repeatedly-skipped languages are suppressed right away.
+         */
+        suspend fun onTrackSkipped(
+            track: MusicTrack,
+            playedFraction: Double = 0.0,
+        ) {
+            if (track.videoId.isBlank() || LocalMediaIds.isLocal(track.videoId)) return
+            if (playedFraction >= 0.25) return
+            if (playerPreferences.isDeepFlowCurrentlyActive()) return
+            ensureInitialized()
+
+            val artistKey = track.primaryArtistKey()
+            val canonKey = MusicBrainLearn.canonicalSkipKey(track.canonicalTitleKey(), artistKey)
+            val lang = track.detectedLanguage()
+            val now = System.currentTimeMillis()
+            mutex.withLock {
+                MusicBrainLearn.applyTrackSkip(
+                    brain = brain,
+                    trackId = track.videoId,
+                    artistKey = artistKey,
+                    canonicalKey = canonKey,
+                    language = lang,
+                    nowMs = now,
+                )
+                refreshAvoidedLanguagesLocked()
+            }
+            scheduleDebouncedSave()
+        }
+
+        fun onTrackSkippedAsync(
+            track: MusicTrack,
+            playedFraction: Double = 0.0,
+        ) {
+            saveScope.launch {
+                try {
+                    onTrackSkipped(track, playedFraction)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Track skip signal failed: ${e.message}")
+                }
+            }
+        }
+
+        fun avoidedLanguagesSnapshot(): Set<String> = avoidedLanguages
+
+        suspend fun avoidedLanguagesNow(): Set<String> {
+            ensureInitialized()
+            return mutex.withLock {
+                refreshAvoidedLanguagesLocked()
+                avoidedLanguages
+            }
+        }
+
+        @Volatile
+        private var avoidedLanguages: Set<String> = emptySet()
+
+        private fun refreshAvoidedLanguagesLocked() {
+            avoidedLanguages = MusicBrainLearn.avoidedLanguageKeys(brain, System.currentTimeMillis())
         }
 
         /**
@@ -233,7 +304,17 @@ class MusicBrainEngine
                         val key = distinctTracks[0].primaryArtistKey()
                         if (brain.isArtistBlocked(key)) emptyList() else distinctTracks
                     } else {
-                        val inputs = distinctTracks.map { MusicRankInput(trackId = it.videoId, artistKey = it.primaryArtistKey()) }
+                        val inputs =
+                            distinctTracks.map {
+                                val key = it.primaryArtistKey()
+                                MusicRankInput(
+                                    trackId = it.videoId,
+                                    artistKey = key,
+                                    canonicalKey = MusicBrainLearn.canonicalSkipKey(it.canonicalTitleKey(), key),
+                                    language = it.detectedLanguage(),
+                                    isFanEdit = musicIsFanEditVariant(it.title),
+                                )
+                            }
                         MusicBrainRanker.rank(brain, inputs, surface, System.currentTimeMillis()).map { distinctTracks[it] }
                     }
                 }
@@ -627,3 +708,10 @@ internal fun MusicTrack.toMusicSignal(pct: Double): MusicSignal {
         thumbnail = thumbnailUrl,
     )
 }
+
+private fun MusicTrack.canonicalTitleKey(): String {
+    val names = (artists.map { it.name } + artist).filter { it.isNotBlank() }.distinct()
+    return musicCanonicalTitleKey(title, names)
+}
+
+private fun MusicTrack.detectedLanguage(): String? = musicDetectLanguage(title, artist)

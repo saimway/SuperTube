@@ -124,6 +124,12 @@ class MusicBrain {
     /** Permanent denylist. Affinity/history is preserved so an unblock warms back up naturally. */
     val blockedArtists: MutableSet<String> = HashSet()
 
+    /** Early-skipped tracks and canonical song keys → skip timestamp (ms). */
+    val skippedTracks: MutableMap<String, Long> = HashMap()
+
+    /** Avoided content languages (ISO code → count and last-skip timestamp). */
+    val languagePenalties: MutableMap<String, MusicLanguagePenalty> = HashMap()
+
     var discoveryAppetite: Double = MusicBrainParams.DISCOVERY_NEUTRAL
     var totalPlays: Int = 0
     var lastRotationDecay: Long = 0L
@@ -140,6 +146,12 @@ class MusicBrain {
             .take(n)
             .map { it.key to it.value.score }
 }
+
+/** Persistent penalty counter for a content language the user repeatedly skips away from. */
+class MusicLanguagePenalty(
+    var count: Int = 0,
+    var lastRejectedAt: Long = 0L,
+)
 
 /**
  * Identity is load-bearing: every map in the brain is keyed by this. Prefer the
@@ -209,6 +221,16 @@ object MusicBrainParams {
     // Ranking
     const val ACT_DECAY = 0.5
     const val ACT_DT_FLOOR_HOURS = 0.05
+    const val SKIPPED_TRACKS_MAX = 300
+    const val SKIP_TRACK_COOLDOWN_MS = 48L * 60 * 60 * 1000
+    const val SKIP_TRACK_COOLDOWN_MULTIPLIER = 0.08
+    const val RECENT_RADIO_TRACK_SUPPRESS_MS = 6L * 60 * 60 * 1000
+    const val RECENT_RADIO_TRACK_MULTIPLIER = 0.12
+    const val FAN_EDIT_MULTIPLIER = 0.35
+    const val LANGUAGE_PENALTY_HALF_LIFE_MS = 14L * 24 * 60 * 60 * 1000
+    const val LANGUAGE_PENALTY_FORGET_BELOW = 0.35
+    const val LANGUAGE_PENALTY_MAX_COUNT = 8
+    const val LANGUAGE_AVOID_THRESHOLD = 0.85
 
     // Local shelves (Rediscover / time-of-day rotation)
     const val REDISCOVER_MIN_PLAYS = 3
