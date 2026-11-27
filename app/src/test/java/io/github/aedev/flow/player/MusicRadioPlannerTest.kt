@@ -267,4 +267,56 @@ class MusicRadioPlannerTest {
 
         assertThat(MusicRadioPlanner.radioAnchors("seed", page)).hasSize(MusicRadioPlanner.MAX_RADIO_ANCHORS)
     }
+
+    @Test
+    fun `seedPool and growPool strip current song variants fan edits and avoided languages`() {
+        val current = MusicTrack(videoId = "orig", title = "Blinding Lights", artist = "The Weeknd", thumbnailUrl = "", duration = 200)
+        val slowed =
+            MusicTrack(
+                videoId = "slow",
+                title = "The Weeknd - Blinding Lights (Slowed + Reverb)",
+                artist = "Slowed Heaven",
+                thumbnailUrl = "",
+                duration = 240,
+            )
+        val fanEdit =
+            MusicTrack(
+                videoId = "fan",
+                title = "Levitating Sped Up",
+                artist = "Nightcore Mix",
+                thumbnailUrl = "",
+                duration = 160,
+            )
+        val avoided =
+            MusicTrack(
+                videoId = "bn1",
+                title = "তুমি আমার",
+                artist = "Bangla Artist",
+                thumbnailUrl = "",
+                duration = 210,
+            )
+        val fresh1 = MusicTrack(videoId = "new1", title = "Starboy", artist = "The Weeknd", thumbnailUrl = "", duration = 230)
+        val fresh2 = MusicTrack(videoId = "new2", title = "Midnight City", artist = "M83", thumbnailUrl = "", duration = 243)
+
+        val seeded =
+            MusicRadioPlanner.seedPool(
+                candidates = listOf(slowed, fanEdit, avoided, fresh1),
+                currentId = current.videoId,
+                queueIds = emptySet(),
+                seedTrack = current,
+                avoidedLanguages = setOf("bn"),
+            )
+        assertThat(seeded.map { it.videoId }).containsExactly("new1")
+
+        val grown =
+            MusicRadioPlanner.growPool(
+                existing = seeded,
+                incoming = listOf(slowed, fresh1, fresh2),
+                currentId = current.videoId,
+                queueIds = emptySet(),
+                seedTrack = current,
+                avoidedLanguages = setOf("bn"),
+            )
+        assertThat(grown.map { it.videoId }).containsExactly("new1", "new2").inOrder()
+    }
 }

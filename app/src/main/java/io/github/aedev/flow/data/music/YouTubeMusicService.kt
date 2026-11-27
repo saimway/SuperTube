@@ -10,6 +10,7 @@ import io.github.aedev.flow.data.newmusic.InnertubeMusicService
 import io.github.aedev.flow.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.Year
 
 /** YouTube Music catalog access for trending, search, genres, playlists and artists, over InnerTube. */
 object YouTubeMusicService {
@@ -52,13 +53,17 @@ object YouTubeMusicService {
             "Bruno Mars",
         )
 
-    private val trendingMusicQueries =
-        listOf(
-            "official music video 2025",
-            "new songs 2025 official",
-            "top music hits 2025",
-            "trending songs 2025",
+    private fun currentYear(): Int = Year.now().value
+
+    private fun trendingMusicQueries(): List<String> {
+        val year = currentYear()
+        return listOf(
+            "official music video $year",
+            "new songs $year official",
+            "top music hits $year",
+            "trending songs $year",
         )
+    }
 
     /**
      * Fetch trending music tracks from YouTube
@@ -79,7 +84,7 @@ object YouTubeMusicService {
                     InnertubeMusicService.fetchCharts()?.songs?.let(tracks::addAll)
                     // Secondary fallback: search-based discovery
                     if (tracks.size < limit) {
-                        tracks.addAll(searchMusic(trendingMusicQueries.first(), limit - tracks.size))
+                        tracks.addAll(searchMusic(trendingMusicQueries().first(), limit - tracks.size))
                     }
                 }
             } catch (e: Exception) {
@@ -98,7 +103,7 @@ object YouTubeMusicService {
     /**
      * Fetch new releases using curated playlists
      */
-    suspend fun fetchNewReleases(limit: Int = 30): List<MusicTrack> = searchMusic("new music releases 2025", limit)
+    suspend fun fetchNewReleases(limit: Int = 30): List<MusicTrack> = searchMusic("new music releases ${currentYear()}", limit)
 
     /**
      * Search for music tracks on YouTube
