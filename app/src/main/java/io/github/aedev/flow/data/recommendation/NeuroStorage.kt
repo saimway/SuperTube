@@ -149,6 +149,7 @@ internal class NeuroStorage(
         val languageProfile: String? = null,
         val languageVotes: Map<String, Int> = emptyMap(),
         val keyLanguage: String? = null,
+        val languagePenalties: Map<String, SerializableRejectionSignal> = emptyMap(),
     )
 
     @Serializable
@@ -300,6 +301,7 @@ internal class NeuroStorage(
             languageProfile = languageProfile,
             languageVotes = languageVotes,
             keyLanguage = keyLanguage,
+            languagePenalties = languagePenalties.mapValues { (_, v) -> v.toSerializable() },
         )
 
     private fun ChannelMemoryEntry.toSerializable() =
@@ -814,6 +816,7 @@ internal fun NeuroStorage.SerializableBrain.toUserBrain(): UserBrain {
         languageProfile = languageProfile,
         languageVotes = languageVotes,
         keyLanguage = keyLanguage,
+        languagePenalties = languagePenalties.mapValues { (_, v) -> v.toRejectionSignal() },
         schemaVersion = schemaVersion,
     )
 }
