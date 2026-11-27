@@ -276,4 +276,17 @@ class MusicBrainLearnTest {
         MusicBrainLearn.setFavouriteArtist(brain, "UCplayed", "Played", favourite = false)
         assertThat(brain.artistAffinity).containsKey("UCplayed")
     }
+
+    @Test
+    fun `early track skip records canonical variant cooldown and avoided language`() {
+        val brain = MusicBrain()
+        val canonKey = MusicBrainLearn.canonicalSkipKey("blinding lights", "UCweeknd")
+        MusicBrainLearn.applyTrackSkip(brain, trackId = "v1", artistKey = "UCweeknd", canonicalKey = canonKey, language = "bn", nowMs = now)
+        assertThat(MusicBrainLearn.isTrackInSkipCooldown(brain, "v1", "", now)).isTrue()
+        assertThat(MusicBrainLearn.isTrackInSkipCooldown(brain, "v_slowed", canonKey, now)).isTrue()
+        assertThat(MusicBrainLearn.avoidedLanguageKeys(brain, now)).contains("bn")
+
+        MusicBrainLearn.forgiveLanguage(brain, "bn", weight = 1)
+        assertThat(MusicBrainLearn.avoidedLanguageKeys(brain, now)).doesNotContain("bn")
+    }
 }

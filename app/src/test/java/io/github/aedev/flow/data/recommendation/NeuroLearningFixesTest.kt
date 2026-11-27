@@ -256,4 +256,28 @@ class NeuroLearningFixesTest {
         // #907: a bare "guitar" search returns generic popular videos that read as trending.
         assertThat(surface.count { ' ' in it }).isAtLeast(surface.size - 1)
     }
+
+    @Test
+    fun `utility test searches are ignored instead of polluting taste vector`() {
+        assertThat(NeuroSearchLearning.isUtilityTestQuery("4k video")).isTrue()
+        assertThat(NeuroSearchLearning.isUtilityTestQuery("wifi speed test")).isTrue()
+        assertThat(NeuroSearchLearning.isUtilityTestQuery("8k hdr")).isTrue()
+        assertThat(NeuroSearchLearning.isUtilityTestQuery("4k oled tv review")).isFalse()
+
+        val initial = UserBrain()
+        assertThat(NeuroSearchLearning.learn(initial, "4k video", tokenizer, 1_700_000_000_000L)).isNull()
+    }
+
+    @Test
+    fun `repeated avoidance of unwanted language penalizes and excludes that language`() {
+        val now = 1_700_000_000_000L
+        var penalties = NeuroLanguages.recordLanguageAvoidance(emptyMap(), "bn", primaryProfile = "en", now = now, weight = 3)
+        assertThat(NeuroLanguages.languagePenaltyMultiplier(penalties, "bn", now)).isAtMost(0.15)
+        assertThat(NeuroLanguages.avoidedLanguageSet(penalties, now)).contains("bn")
+
+        penalties = NeuroLanguages.forgiveLanguage(penalties, "bn")
+        penalties = NeuroLanguages.forgiveLanguage(penalties, "bn")
+        penalties = NeuroLanguages.forgiveLanguage(penalties, "bn")
+        assertThat(NeuroLanguages.avoidedLanguageSet(penalties, now)).doesNotContain("bn")
+    }
 }

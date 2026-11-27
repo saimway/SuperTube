@@ -3,6 +3,8 @@ package io.github.aedev.flow.ui.screens.music.collection
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.YouTubeMusicService
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.data.music.model.dedupeCanonicalSongs
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 import io.github.aedev.flow.utils.PerformanceDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -91,9 +93,13 @@ internal fun mergeSuggestions(
     exclude: Set<String>,
 ): List<MusicTrack> {
     val longest = related.maxOfOrNull { it.size } ?: 0
-    return (0 until longest)
-        .flatMap { index -> related.mapNotNull { it.getOrNull(index) } }
-        .filterNot { it.videoId in exclude }
-        .distinctBy { it.videoId }
+    val filtered =
+        (0 until longest)
+            .flatMap { index -> related.mapNotNull { it.getOrNull(index) } }
+            .filterNot { it.videoId in exclude }
+            .distinctBy { it.videoId }
+    val nonFanEdits = filtered.filterNot { musicIsFanEditVariant(it.title) }.ifEmpty { filtered }
+    return nonFanEdits
+        .dedupeCanonicalSongs()
         .take(MusicCollectionSuggestions.SHOWN)
 }

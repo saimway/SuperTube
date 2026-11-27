@@ -282,4 +282,20 @@ class MusicBrainRankerTest {
             .containsExactly("thrice", "twice")
             .inOrder()
     }
+
+    @Test
+    fun `radio sinks avoided languages early skipped tracks and prefers clean originals over fan edits`() {
+        val brain = brainWithFavorite("UCclean", plays = 5)
+        MusicBrainLearn.applyTrackSkip(brain, "t_skip", "UCs", canonicalKey = "canon:skipme", language = "bn", nowMs = now)
+        val inputs =
+            listOf(
+                MusicRankInput(trackId = "t_bn", artistKey = "UCb", language = "bn"),
+                MusicRankInput(trackId = "t_skip_var", artistKey = "UCs", canonicalKey = "canon:skipme"),
+                MusicRankInput(trackId = "t_fan", artistKey = "UCclean", isFanEdit = true),
+                MusicRankInput(trackId = "t_orig", artistKey = "UCclean", isFanEdit = false),
+            )
+        val order = MusicBrainRanker.rank(brain, inputs, MusicBrainRanker.SURFACE_RADIO, now)
+        assertThat(order.first()).isEqualTo(3)
+        assertThat(order.last()).isIn(listOf(0, 1))
+    }
 }

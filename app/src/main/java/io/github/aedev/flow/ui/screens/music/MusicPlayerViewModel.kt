@@ -21,9 +21,14 @@ import io.github.aedev.flow.data.music.YouTubeMusicService
 import io.github.aedev.flow.data.music.model.MUSIC_GENRE_SOURCE_PREFIX
 import io.github.aedev.flow.data.music.model.MusicArtist
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.data.music.model.dedupeCanonicalSongs
+import io.github.aedev.flow.data.music.model.isSameSongOrVariant
+import io.github.aedev.flow.data.music.model.musicDetectLanguage
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 import io.github.aedev.flow.data.newmusic.InnertubeMusicService
 import io.github.aedev.flow.data.newmusic.MusicArtistLookup
 import io.github.aedev.flow.data.recommendation.music.MusicBrainEngine
+import io.github.aedev.flow.data.recommendation.music.isHiddenArtist
 import io.github.aedev.flow.data.recommendation.music.onRepeatShelf
 import io.github.aedev.flow.data.scrobble.Scrobbler
 import io.github.aedev.flow.player.EnhancedMusicPlayerManager
@@ -507,11 +512,45 @@ class MusicPlayerViewModel
             viewModelScope.launch(PerformanceDispatcher.networkIO) {
                 _uiState.update { it.copy(isRelatedLoading = true) }
                 try {
-                    val related =
+                    val rawRelated =
                         withTimeoutOrNull(10_000L) {
-                            YouTubeMusicService.getRelatedMusic(videoId, 20)
+                            YouTubeMusicService.getRelatedMusic(videoId, 24)
                         } ?: emptyList()
-                    if (related.isEmpty()) relatedFetchedForId = null
+                    if (rawRelated.isEmpty()) relatedFetchedForId = null
+
+                    val currentTrack =
+                        EnhancedMusicPlayerManager.currentTrack.value
+                            ?: _uiState.value.currentTrack
+                    val hidden = musicBrain.hiddenArtists.value
+                    val avoidedLangs = musicBrain.avoidedLanguagesNow()
+                    val allowFanEdits = currentTrack?.let { musicIsFanEditVariant(it.title) } == true
+                    val excludedTracks =
+                        (listOfNotNull(currentTrack) + EnhancedMusicPlayerManager.queue.value.take(12))
+                            .distinctBy { it.videoId }
+
+                    val filtered =
+                        rawRelated
+                            .asSequence()
+                            .filterNot { it.videoId == videoId || it.isHiddenArtist(hidden) }
+                            .filterNot { cand -> excludedTracks.any { it.isSameSongOrVariant(cand) } }
+                            .filterNot { !allowFanEdits && musicIsFanEditVariant(it.title) }
+                            .filterNot { cand ->
+                                avoidedLangs.isNotEmpty() &&
+                                    musicDetectLanguage(cand.title, cand.artist) in avoidedLangs
+                            }.toList()
+                            .dedupeCanonicalSongs()
+                            .ifEmpty {
+                                rawRelated
+                                    .filterNot { it.videoId == videoId || it.isHiddenArtist(hidden) }
+                                    .filterNot { cand -> currentTrack?.isSameSongOrVariant(cand) == true }
+                                    .dedupeCanonicalSongs()
+                            }
+                    val related =
+                        if (filtered.isNotEmpty()) {
+                            musicBrain.rankTracks(filtered, "similar")
+                        } else {
+                            emptyList()
+                        }
 
                     // Related content is display-only here: the radio pool (automix)
                     // is owned by Media3MusicService and must not churn per track.

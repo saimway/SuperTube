@@ -41,4 +41,18 @@ class ShortWatchClassifierTest {
         assertThat(s.safeDuration).isEqualTo(20_000L)
         assertThat(s.interaction).isEqualTo(InteractionType.WATCHED)
     }
+
+    @Test
+    fun `fast swipe while player duration is unknown is classified as SKIPPED instead of 100 percent watched`() {
+        val signal = ShortWatchClassifier.classifyAbandon(positionMs = 1_200L, durationMs = 0L, videoDurationSec = 0)
+        assertThat(signal).isNotNull()
+        assertThat(signal!!.interaction).isEqualTo(InteractionType.SKIPPED)
+    }
+
+    @Test
+    fun `fast abandon under two seconds on short clip is still SKIPPED`() {
+        val signal = ShortWatchClassifier.classifyAbandon(positionMs = 900L, durationMs = 15_000L, videoDurationSec = 15)
+        assertThat(signal).isNotNull()
+        assertThat(signal!!.interaction).isEqualTo(InteractionType.SKIPPED)
+    }
 }
