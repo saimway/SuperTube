@@ -37,6 +37,8 @@ internal class NeuroDiscovery(
     private val tokenizer: NeuroTokenizer,
 ) {
     companion object {
+        private const val SEARCH_ONLY_DISCOVERY_TTL_MS = 48L * 3_600_000L
+
         /** What Home searches before anything is learned or picked; never recorded as learned (#907). */
         val STARTER_QUERIES = listOf(
             "Technology",
@@ -93,6 +95,7 @@ internal class NeuroDiscovery(
     private fun analyzeMatureTopics(
         brain: UserBrain,
         timeTopics: Set<String>,
+        now: Long = System.currentTimeMillis(),
     ): List<MatureTopic> {
         val allTopics = brain.interests.topics
         if (allTopics.isEmpty()) return emptyList()
@@ -121,7 +124,7 @@ internal class NeuroDiscovery(
                     maturityLevel = maturity,
                     categorySupport = categorySupport,
                     hasTimeContext = name in timeTopics,
-                    hasDiscoveryEvidence = hasDiscoveryEvidence(name, brain),
+                    hasDiscoveryEvidence = hasDiscoveryEvidence(name, brain, now),
                 )
             }.sortedWith(
                 compareByDescending<MatureTopic> { it.maturityLevel.ordinal }
@@ -300,6 +303,16 @@ internal class NeuroDiscovery(
         isMatureBrain: Boolean = false,
     ): Boolean = isDiscoveryEligible(topic, null, isMatureBrain)
 
+    private fun isSearchOnlyUnwatched(
+        topic: String,
+        brain: UserBrain,
+    ): Boolean {
+        val base = NeuroScoring.stripDomainTag(topic)
+        if (brain.preferredTopics.any { tokenizer.keyOf(it).equals(base, ignoreCase = true) }) return false
+        val ev = brain.topicEvidence[base] ?: brain.topicEvidence[topic] ?: return false
+        return ev.watchSignals == 0 && ev.videoIds.isEmpty() && ev.explicitSignals in 1..2 && ev.positiveScore < 1.2
+    }
+
     private fun isDiscoveryEligible(
         topic: MatureTopic,
         brain: UserBrain? = null,
@@ -307,6 +320,9 @@ internal class NeuroDiscovery(
         now: Long = System.currentTimeMillis(),
     ): Boolean {
         if (brain != null && NeuroScoring.hasActiveTopicRejection(topic.name, brain.rejectionPatterns, now)) {
+            return false
+        }
+        if (brain != null && isSearchOnlyUnwatched(topic.name, brain)) {
             return false
         }
         if (topic.hasDiscoveryEvidence) return true
@@ -318,6 +334,7 @@ internal class NeuroDiscovery(
     private fun hasDiscoveryEvidence(
         topic: String,
         brain: UserBrain,
+        now: Long = System.currentTimeMillis(),
     ): Boolean {
         val base = NeuroScoring.stripDomainTag(topic)
         val preferred =
@@ -330,13 +347,18 @@ internal class NeuroDiscovery(
             brain.topicEvidence[base] ?: brain.topicEvidence[topic]
                 ?: return false
 
-        return evidence.explicitSignals > 0 ||
-            evidence.watchSignals >= 2 ||
+        val recentRepeatedSearch =
+            evidence.explicitSignals >= 3 &&
+                (now - evidence.lastSeenAt) <= SEARCH_ONLY_DISCOVERY_TTL_MS
+
+        return evidence.watchSignals >= 2 ||
             evidence.videoIds.size >= 2 ||
+            (evidence.explicitSignals >= 1 && evidence.watchSignals >= 1) ||
+            recentRepeatedSearch ||
             evidence.positiveScore >= 1.2 ||
             // Modest but repeated engagement: enough to earn scheduled rotation
             // slots for weak-tail interests (probation still damps their scores).
-            (evidence.positiveSignals >= 2 && evidence.positiveScore >= 0.5)
+            (evidence.positiveSignals >= 2 && evidence.positiveScore >= 0.5 && evidence.watchSignals >= 1)
     }
 
     // ═══════════════════════════════════════════════
@@ -584,7 +606,7 @@ internal class NeuroDiscovery(
                 .filter { isSubstantialTopic(it) }
                 .toSet()
 
-        val matureTopics = analyzeMatureTopics(brain, timeTopicSet)
+        val matureTopics = analyzeMatureTopics(brain, timeTopicSet, now)
 
         // Step 2: Select topics — EVERY served cluster contributes to EVERY feed,
         // and depth walks each cluster's members like a tree on load-more.

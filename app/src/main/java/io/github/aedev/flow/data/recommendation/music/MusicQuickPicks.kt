@@ -7,6 +7,9 @@
 package io.github.aedev.flow.data.recommendation.music
 
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.data.music.model.isSameSongOrVariant
+import io.github.aedev.flow.data.music.model.musicDetectLanguage
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 
 /**
  * The Quick Picks lane model, ported from the desktop composer: several
@@ -78,6 +81,9 @@ object MusicQuickPicks {
         excludedIds: Set<String>,
         laneCaps: List<Int>? = null,
         maxPerArtist: Int = MAX_PER_ARTIST,
+        excludedTracks: List<MusicTrack> = emptyList(),
+        avoidedLanguages: Set<String> = emptySet(),
+        allowFanEdits: Boolean = false,
     ): List<MusicTrack> {
         val cursors = IntArray(lanes.size)
         val picked = IntArray(lanes.size)
@@ -96,9 +102,21 @@ object MusicQuickPicks {
                 while (cursor < lane.size) {
                     val candidate = lane[cursor]
                     cursor++
-                    if (!seen.add(candidate.videoId)) continue
+                    if (candidate.videoId in seen) continue
+                    if (!allowFanEdits && musicIsFanEditVariant(candidate.title)) continue
+                    if (avoidedLanguages.isNotEmpty() &&
+                        musicDetectLanguage(candidate.title, candidate.artist) in avoidedLanguages
+                    ) {
+                        continue
+                    }
+                    if (excludedTracks.any { it.isSameSongOrVariant(candidate) } ||
+                        result.any { it.isSameSongOrVariant(candidate) }
+                    ) {
+                        continue
+                    }
                     val artistKey = candidate.primaryArtistKey()
                     if (artistKey.isNotEmpty() && (artistCounts[artistKey] ?: 0) >= maxPerArtist) continue
+                    seen.add(candidate.videoId)
                     pick = candidate
                     break
                 }

@@ -2,6 +2,10 @@ package io.github.aedev.flow.player
 
 import io.github.aedev.flow.data.localmedia.LocalMediaIds
 import io.github.aedev.flow.data.music.model.MusicTrack
+import io.github.aedev.flow.data.music.model.dedupeCanonicalSongs
+import io.github.aedev.flow.data.music.model.isSameSongOrVariant
+import io.github.aedev.flow.data.music.model.musicDetectLanguage
+import io.github.aedev.flow.data.music.model.musicIsFanEditVariant
 import io.github.aedev.flow.data.recommendation.music.primaryArtistKey
 
 /**
@@ -67,13 +71,52 @@ internal object MusicRadioPlanner {
         candidates: List<MusicTrack>,
         currentId: String?,
         queueIds: Set<String>,
+        seedTrack: MusicTrack? = null,
+        queueTracks: List<MusicTrack> = emptyList(),
+        avoidedLanguages: Set<String> = emptySet(),
     ): List<MusicTrack> =
         capArtists(
-            candidates
-                .distinctBy { it.videoId }
-                .filterNot { it.videoId == currentId || it.videoId in queueIds },
+            filterCandidates(
+                candidates = candidates,
+                currentId = currentId,
+                blockedIds = queueIds,
+                excludedTracks = buildList {
+                    if (seedTrack != null) add(seedTrack)
+                    addAll(queueTracks)
+                },
+                allowFanEdits = seedTrack?.let { musicIsFanEditVariant(it.title) } == true,
+                avoidedLanguages = avoidedLanguages,
+            ),
             emptyMap(),
         ).take(MAX_POOL_SIZE)
+
+    private fun filterCandidates(
+        candidates: List<MusicTrack>,
+        currentId: String?,
+        blockedIds: Set<String>,
+        excludedTracks: List<MusicTrack>,
+        allowFanEdits: Boolean,
+        avoidedLanguages: Set<String>,
+    ): List<MusicTrack> {
+        val unique =
+            candidates
+                .distinctBy { it.videoId }
+                .filterNot { cand ->
+                    cand.videoId == currentId ||
+                        cand.videoId in blockedIds ||
+                        excludedTracks.any { it.isSameSongOrVariant(cand) }
+                }.filterNot { cand ->
+                    avoidedLanguages.isNotEmpty() &&
+                        musicDetectLanguage(cand.title, cand.artist) in avoidedLanguages
+                }
+        val clean =
+            if (allowFanEdits) {
+                unique
+            } else {
+                unique.filterNot { musicIsFanEditVariant(it.title) }.ifEmpty { unique }
+            }
+        return clean.dedupeCanonicalSongs()
+    }
 
     /**
      * Drops an artist's surplus tracks, keeping the order it was handed. Ranking and artist spread
@@ -105,15 +148,27 @@ internal object MusicRadioPlanner {
         incoming: List<MusicTrack>,
         currentId: String?,
         queueIds: Set<String>,
+        seedTrack: MusicTrack? = null,
+        queueTracks: List<MusicTrack> = emptyList(),
+        avoidedLanguages: Set<String> = emptySet(),
     ): List<MusicTrack> {
         val room = MAX_POOL_SIZE - existing.size
         if (room <= 0) return existing
         val existingIds = existing.mapTo(HashSet()) { it.videoId }
         val fresh =
             capArtists(
-                incoming
-                    .distinctBy { it.videoId }
-                    .filterNot { it.videoId == currentId || it.videoId in queueIds || it.videoId in existingIds },
+                filterCandidates(
+                    candidates = incoming,
+                    currentId = currentId,
+                    blockedIds = queueIds + existingIds,
+                    excludedTracks = buildList {
+                        if (seedTrack != null) add(seedTrack)
+                        addAll(queueTracks)
+                        addAll(existing)
+                    },
+                    allowFanEdits = seedTrack?.let { musicIsFanEditVariant(it.title) } == true,
+                    avoidedLanguages = avoidedLanguages,
+                ),
                 artistCounts(existing),
             ).take(room)
         return if (fresh.isEmpty()) existing else existing + fresh

@@ -57,6 +57,12 @@ internal class MusicBrainStorage(
     )
 
     @Serializable
+    data class SerializableLanguagePenalty(
+        val count: Int = 0,
+        val lastRejectedAt: Long = 0L,
+    )
+
+    @Serializable
     data class SerializableMusicBrain(
         val schemaVersion: Int = MusicBrainParams.SCHEMA_VERSION,
         val artistAffinity: Map<String, SerializableAffinity> = emptyMap(),
@@ -70,6 +76,8 @@ internal class MusicBrainStorage(
         val seenArtists: List<String> = emptyList(),
         val dislikedArtists: Map<String, Long> = emptyMap(),
         val blockedArtists: List<String> = emptyList(),
+        val skippedTracks: Map<String, Long> = emptyMap(),
+        val languagePenalties: Map<String, SerializableLanguagePenalty> = emptyMap(),
         val discoveryAppetite: Double = MusicBrainParams.DISCOVERY_NEUTRAL,
         val totalPlays: Int = 0,
         val lastRotationDecay: Long = 0L,
@@ -149,6 +157,8 @@ private fun MusicBrainStorage.SerializableMusicBrain.hasAnyState(): Boolean =
         trackPlays.isNotEmpty() ||
         seenArtists.isNotEmpty() ||
         blockedArtists.isNotEmpty() ||
+        skippedTracks.isNotEmpty() ||
+        languagePenalties.isNotEmpty() ||
         backfilled
 
 internal fun MusicBrain.toSerializable(): MusicBrainStorage.SerializableMusicBrain =
@@ -171,6 +181,11 @@ internal fun MusicBrain.toSerializable(): MusicBrainStorage.SerializableMusicBra
         seenArtists = seenArtists.toList(),
         dislikedArtists = dislikedArtists.toMap(),
         blockedArtists = blockedArtists.toList(),
+        skippedTracks = skippedTracks.toMap(),
+        languagePenalties =
+            languagePenalties.mapValues { (_, p) ->
+                MusicBrainStorage.SerializableLanguagePenalty(p.count, p.lastRejectedAt)
+            },
         discoveryAppetite = discoveryAppetite,
         totalPlays = totalPlays,
         lastRotationDecay = lastRotationDecay,
@@ -197,6 +212,10 @@ internal fun MusicBrainStorage.SerializableMusicBrain.toMusicBrain(): MusicBrain
     brain.seenArtists.addAll(seenArtists)
     brain.dislikedArtists.putAll(dislikedArtists)
     brain.blockedArtists.addAll(blockedArtists)
+    brain.skippedTracks.putAll(skippedTracks)
+    languagePenalties.forEach { (k, p) ->
+        brain.languagePenalties[k] = MusicLanguagePenalty(p.count, p.lastRejectedAt)
+    }
     brain.discoveryAppetite = discoveryAppetite
     brain.totalPlays = totalPlays
     brain.lastRotationDecay = lastRotationDecay
